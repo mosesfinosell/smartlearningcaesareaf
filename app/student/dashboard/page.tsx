@@ -1,435 +1,549 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '@/lib/api';
+import Link from 'next/link';
 
-interface StudentData {
-  id: string;
-  studentCode: string;
-  userId: {
-    profile: {
-      firstName: string;
-      lastName: string;
-      profilePicture?: string;
-    };
-  };
-  academicInfo: {
-    currentGrade: string;
-    curriculum: string;
-  };
-  performance: {
-    overallGrade: number;
-    overallPercentage: number;
-    attendance: number;
-    completedAssignments: number;
-    totalAssignments: number;
-  };
-  enrolledSubjects: any[];
-}
-
-interface ClassData {
+type Class = {
   _id: string;
-  classCode: string;
-  subjectId: {
+  subject: {
     name: string;
-    code: string;
+    level?: string;
   };
-  tutorId: {
-    profile: {
+  tutor: {
+    userId: {
       firstName: string;
       lastName: string;
     };
+    rating?: number;
   };
-  schedule: {
+  schedule: Array<{
     day: string;
     startTime: string;
     endTime: string;
+  }>;
+  zoomLink?: string;
+};
+
+type Assignment = {
+  _id: string;
+  title: string;
+  description?: string;
+  class: {
+    subject: {
+      name: string;
+    };
   };
-  sessions: any[];
-}
+  dueDate?: Date | string;
+  totalPoints: number;
+  submission?: {
+    submittedAt?: Date | string;
+    score?: number;
+    feedback?: string;
+  };
+};
+
+type ProgressReport = {
+  _id: string;
+  class: {
+    subject: {
+      name: string;
+    };
+  };
+  overallGrade: string | number;
+  attendance: number;
+  comments: string;
+  createdAt?: Date | string;
+};
+
+type StudentProfile = {
+  _id: string;
+  userId: any;
+  parentId?: any;
+};
 
 export default function StudentDashboard() {
   const router = useRouter();
-  const [student, setStudent] = useState<StudentData | null>(null);
-  const [classes, setClasses] = useState<ClassData[]>([]);
-  const [todayClasses, setTodayClasses] = useState<ClassData[]>([]);
-  const [upcomingAssignments, setUpcomingAssignments] = useState<any[]>([]);
+  const apiBase = process.env.NEXT_PUBLIC_API_URL;
+  const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [reports, setReports] = useState<ProgressReport[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'classes' | 'assignments' | 'progress'>('classes');
+  const [error, setError] = useState<string>('');
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userId');
+    router.push('/login');
+  };
 
   useEffect(() => {
-    fetchData();
+    fetchDashboardData();
   }, []);
 
-  const fetchData = async () => {
+  const fetchDashboardData = async () => {
     try {
-      // Get current user
-      const userRes = await api.get('/auth/me');
-      const userData = userRes.data.data.user || userRes.data.data;
-      const userId = userData.id || userData._id;
-
-      // Get student profile
-      const studentRes = await api.get(`/students/user/${userId}`);
-      const studentData = studentRes.data.data;
-      const studentId = studentData.id || studentData._id;
-      setStudent(studentData);
-
-      // Get student's classes
-      if (!studentId) {
-        throw new Error('Missing student id');
+      const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+      if (!token || !userId) {
+        router.push('/login');
+        return;
       }
-      const classesRes = await api.get(`/classes/student/${studentId}`);
-      setClasses(classesRes.data.data);
 
-      // Filter today's classes
-      const today = new Date().toLocaleString('en-US', { weekday: 'long' });
-      const todayClassesFiltered = classesRes.data.data.filter(
-        (c: ClassData) => c.schedule?.day === today
-      );
-      setTodayClasses(todayClassesFiltered);
+      const authHeaders = { 'Authorization': `Bearer ${token}` };
 
-      // Get assignments
-      const assignmentsRes = await api.get(`/assignments/student/${studentId}`);
-      const pending = assignmentsRes.data.data.filter(
-        (a: any) => a.submission?.status !== 'graded'
-      );
-      setUpcomingAssignments(pending.slice(0, 5));
+      // Fetch student profile using userId
+      const profileRes = await fetch(`${apiBase}/students/user/${userId}`, {
+        headers: authHeaders
+      });
+      const profileJson = await profileRes.json();
+      if (!profileRes.ok || !profileJson.data) {
+        throw new Error(profileJson.message || 'Failed to load profile');
+      }
+      const studentProfile = profileJson.data as StudentProfile;
+      setProfile(studentProfile);
+
+      const studentId = studentProfile._id;
+
+      // Fetch enrolled classes
+      const classesRes = await fetch(`${apiBase}/classes/student/${studentId}`, {
+        headers: authHeaders
+      });
+      const classesJson = await classesRes.json();
+      const classesData = (classesJson.data || classesJson || []) as any[];
+      const normalizedClasses: Class[] = classesData.map((cls) => ({
+        _id: cls._id,
+        subject: {
+          name: cls.subject?.name || cls.subjectId?.name || 'Subject',
+          level: cls.subject?.level || cls.curriculum
+        },
+        tutor: {
+          userId: {
+            firstName: cls.tutor?.userId?.firstName || cls.tutorId?.profile?.firstName || 'Tutor',
+            lastName: cls.tutor?.userId?.lastName || cls.tutorId?.profile?.lastName || ''
+          },
+          rating: cls.tutor?.rating || cls.tutorId?.rating
+        },
+        schedule: Array.isArray(cls.schedule)
+          ? cls.schedule
+          : cls.schedule
+            ? [{
+              day: cls.schedule.day,
+              startTime: cls.schedule.startTime,
+              endTime: cls.schedule.endTime
+            }]
+            : [],
+        zoomLink: cls.zoomLink || cls.sessions?.[0]?.zoomMeetingLink
+      }));
+      setClasses(normalizedClasses);
+
+      // Fetch assignments with submissions
+      const assignmentsRes = await fetch(`${apiBase}/assignments/student/${studentId}`, {
+        headers: authHeaders
+      });
+      const assignmentsJson = await assignmentsRes.json();
+      const assignmentsData = (assignmentsJson.data || assignmentsJson || []) as any[];
+      const normalizedAssignments: Assignment[] = assignmentsData.map((item) => {
+        const assignment = item.assignment || item;
+        return {
+          _id: assignment.id || assignment._id || 'assignment',
+          title: assignment.title || 'Assignment',
+          description: assignment.description || assignment.instructions || '',
+          class: {
+            subject: {
+              name: assignment.class?.subject?.name
+                || assignment.subject?.name
+                || assignment.subjectId?.name
+                || 'Subject'
+            }
+          },
+          dueDate: assignment.dueDate,
+          totalPoints: assignment.maxScore ?? assignment.totalPoints ?? 0,
+          submission: item.submission || assignment.submission
+        };
+      });
+      setAssignments(normalizedAssignments);
+
+      // Fetch progress reports
+      const reportsRes = await fetch(`${apiBase}/progress-reports/student/${studentId}`, {
+        headers: authHeaders
+      });
+      const reportsJson = await reportsRes.json();
+      const reportsData = (reportsJson.data || reportsJson || []) as any[];
+      const normalizedReports: ProgressReport[] = reportsData.map((report) => ({
+        _id: report._id,
+        class: {
+          subject: {
+            name:
+              report.class?.subject?.name ||
+              report.subjects?.[0]?.subjectId?.name ||
+              'Subject'
+          }
+        },
+        overallGrade:
+          report.overallGrade ||
+          report.overallPerformance?.overallGrade ||
+          report.overallPerformance?.overallPercentage ||
+          'N/A',
+        attendance:
+          report.attendance ??
+          report.overallPerformance?.overallAttendance ??
+          0,
+        comments:
+          report.comments ||
+          report.subjects?.[0]?.tutorComments ||
+          'No comments yet',
+        createdAt: report.createdAt || report.period?.endDate
+      }));
+      setReports(normalizedReports);
 
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching dashboard data:', error);
+      setError('Could not load dashboard data. Please try again.');
       setLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await api.post('/auth/logout');
-    } catch (err) {
-      // ignore errors on logout
-    } finally {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        router.push('/login');
-      }
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F5F0E8] flex items-center justify-center">
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <div className="text-2xl text-maroon">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C9A05C] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading your dashboard...</p>
+          <p className="text-xl text-maroon mb-4">{error || 'Profile not found'}</p>
+          <button
+            onClick={() => router.push('/login')}
+            className="bg-maroon text-white px-6 py-2 rounded-lg"
+          >
+            Go to Login
+          </button>
         </div>
       </div>
     );
   }
 
-  if (!student) {
-    return (
-      <div className="min-h-screen bg-[#F5F0E8] flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600">No student profile found.</p>
-        </div>
-      </div>
-    );
-  }
+  const firstName = profile.userId?.profile?.firstName || profile.userId?.firstName || 'Student';
+  const lastName = profile.userId?.profile?.lastName || profile.userId?.lastName || '';
+  const email = profile.userId?.email || profile.userId?.profile?.email || '';
+  const parentFirst =
+    profile.parentId?.userId?.profile?.firstName || profile.parentId?.userId?.firstName || '';
+  const parentLast =
+    profile.parentId?.userId?.profile?.lastName || profile.parentId?.userId?.lastName || '';
+
+  const pendingAssignments = assignments.filter(a => !a.submission);
+  const gradedAssignments = assignments.filter(a => a.submission?.score !== undefined);
 
   return (
-    <div className="min-h-screen bg-[#F5F0E8]">
+    <div className="min-h-screen bg-cream">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-[#C9A05C]/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              {student.userId.profile.profilePicture ? (
-                <img
-                  src={student.userId.profile.profilePicture}
-                  alt="Profile"
-                  className="w-12 h-12 rounded-full border-2 border-[#C9A05C]"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-[#C9A05C] flex items-center justify-center text-white font-semibold">
-                  {student.userId.profile.firstName[0]}
-                  {student.userId.profile.lastName[0]}
-                </div>
-              )}
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900">
-                  Welcome back, {student.userId.profile.firstName}!
-                </h1>
-                <p className="text-sm text-gray-600">
-                  {student.academicInfo.currentGrade} • {student.studentCode}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => router.push('/student/classes')}
-              className="px-4 py-2 text-sm border border-[#C9A05C] text-[#C9A05C] rounded-lg hover:bg-[#C9A05C] hover:text-white transition"
-            >
-              View Classes
-            </button>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition"
-            >
-              Logout
-            </button>
+      <header className="bg-maroon text-white py-6 px-8 shadow-lg">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Student Dashboard</h1>
+            <p className="text-gold mt-1">
+              Welcome back, {firstName}!
+            </p>
           </div>
+          <button
+            onClick={handleLogout}
+            className="bg-white text-maroon px-4 py-2 rounded-lg font-semibold hover:bg-gold hover:text-white transition-colors"
+          >
+            Logout
+          </button>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Performance Cards */}
+      <div className="max-w-7xl mx-auto px-8 py-8">
+        {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Overall Grade</p>
-                <p className="text-3xl font-bold text-[#C9A05C] mt-1">
-                  {student.performance.overallPercentage.toFixed(0)}%
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-[#C9A05C]/10 rounded-full flex items-center justify-center">
-                <span className="text-2xl">📊</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title="Enrolled Classes"
+            value={classes.length}
+            color="bg-maroon"
+            icon="📚"
+          />
+          <StatCard
+            title="Pending Assignments"
+            value={pendingAssignments.length}
+            color="bg-gold"
+            icon="📝"
+          />
+          <StatCard
+            title="Completed"
+            value={gradedAssignments.length}
+            color="bg-green-600"
+            icon="✓"
+          />
+          <StatCard
+            title="Progress Reports"
+            value={reports.length}
+            color="bg-blue-600"
+            icon="📊"
+          />
+        </div>
 
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Attendance</p>
-                <p className="text-3xl font-bold text-green-600 mt-1">
-                  {student.performance.attendance.toFixed(0)}%
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">✅</span>
-              </div>
+        {/* Profile Card */}
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-20 h-20 bg-maroon rounded-full flex items-center justify-center text-white text-3xl font-bold">
+              {(firstName || 'S')[0]}
+              {(lastName || '')[0] || ''}
             </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Assignments</p>
-                <p className="text-3xl font-bold text-blue-600 mt-1">
-                  {student.performance.completedAssignments}/{student.performance.totalAssignments}
+            <div className="flex-1">
+              <h2 className="text-2xl font-bold text-maroon">
+                {firstName} {lastName}
+              </h2>
+              {email && (
+                <p className="text-gray-600">
+                  Email: {email}
                 </p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">📝</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Active Subjects</p>
-                <p className="text-3xl font-bold text-purple-600 mt-1">
-                  {student.enrolledSubjects.filter(s => s.status === 'active').length}
+              )}
+              {parentFirst && (
+                <p className="text-gray-600">
+                  Parent: {parentFirst} {parentLast}
                 </p>
-              </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">📚</span>
-              </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Today's Schedule & Assignments */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Today's Schedule */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-              <div className="p-6 border-b border-gray-100">
-                <h2 className="text-lg font-semibold text-gray-900">Today's Classes</h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  {new Date().toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </p>
-              </div>
-              <div className="p-6">
-                {todayClasses.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">No classes scheduled for today</p>
-                    <p className="text-sm text-gray-400 mt-1">Enjoy your free day! 🎉</p>
+        {/* Tabs */}
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab('classes')}
+              className={`flex-1 py-4 px-6 font-semibold ${
+                activeTab === 'classes' 
+                  ? 'bg-maroon text-white' 
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              My Classes
+            </button>
+            <button
+              onClick={() => setActiveTab('assignments')}
+              className={`flex-1 py-4 px-6 font-semibold ${
+                activeTab === 'assignments' 
+                  ? 'bg-maroon text-white' 
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              Assignments
+            </button>
+            <button
+              onClick={() => setActiveTab('progress')}
+              className={`flex-1 py-4 px-6 font-semibold ${
+                activeTab === 'progress' 
+                  ? 'bg-maroon text-white' 
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              Progress Reports
+            </button>
+          </div>
+
+          <div className="p-6">
+            {/* Classes Tab */}
+            {activeTab === 'classes' && (
+              <div>
+                <h2 className="text-2xl font-bold text-maroon mb-6">My Classes</h2>
+                {classes.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500 text-lg">No enrolled classes</p>
+                    <p className="text-gray-400 mt-2">Contact your parent to enroll in classes</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {todayClasses.map((classItem) => {
-                      const nextSession = classItem.sessions.find(s => s.status === 'scheduled');
-                      return (
-                        <div
-                          key={classItem._id}
-                          className="flex items-center justify-between p-4 bg-[#F5F0E8] rounded-lg"
-                        >
-                          <div className="flex items-center space-x-4">
-                            <div className="w-12 h-12 bg-[#C9A05C] rounded-lg flex items-center justify-center text-white font-semibold">
-                              {classItem.subjectId.code.slice(0, 2)}
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-gray-900">
-                                {classItem.subjectId.name}
-                              </h3>
-                              <p className="text-sm text-gray-600">
-                                {classItem.tutorId.profile.firstName} {classItem.tutorId.profile.lastName}
-                              </p>
-                              <p className="text-sm text-gray-500">
-                                {classItem.schedule.startTime} - {classItem.schedule.endTime}
-                              </p>
-                            </div>
-                          </div>
-                          {nextSession?.zoomMeetingLink && (
-                            <a
-                              href={nextSession.zoomMeetingLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-4 py-2 bg-[#0E72ED] text-white rounded-lg hover:bg-[#0E72ED]/90 transition text-sm font-medium"
-                            >
-                              Join Class
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {classes.map((classItem) => (
+                      <div key={classItem._id} className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow">
+                        <h3 className="text-lg font-semibold text-maroon mb-2">
+                          {classItem.subject.name}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-3">{classItem.subject.level || ''}</p>
+                        
+                        <div className="space-y-2 mb-4">
+                          <p className="text-sm text-gray-700">
+                            👨‍🏫 Tutor: {classItem.tutor.userId.firstName} {classItem.tutor.userId.lastName}
+                          </p>
+                          <p className="text-sm text-gray-700">
+                            ⭐ Rating: {(classItem.tutor.rating || 0).toFixed(1)}
+                          </p>
+                          {classItem.schedule.map((sched, idx) => (
+                            <p key={idx} className="text-sm text-gray-700">
+                              📅 {sched.day}: {sched.startTime} - {sched.endTime}
+                            </p>
+                          ))}
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Link href={`/student/classes/${classItem._id}`} className="flex-1">
+                            <button className="w-full bg-maroon text-white py-2 rounded-lg text-sm font-semibold hover:bg-red-900">
+                              View Details
+                            </button>
+                          </Link>
+                          {classItem.zoomLink && (
+                            <a href={classItem.zoomLink} target="_blank" rel="noopener noreferrer" className="flex-1">
+                              <button className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-blue-700">
+                                Join Class
+                              </button>
                             </a>
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Upcoming Assignments */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-              <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Pending Assignments</h2>
-                <button
-                  onClick={() => router.push('/student/assignments')}
-                  className="text-sm text-[#C9A05C] hover:underline"
-                >
-                  View All
-                </button>
-              </div>
-              <div className="p-6">
-                {upcomingAssignments.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">All caught up! 🎉</p>
-                    <p className="text-sm text-gray-400 mt-1">No pending assignments</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {upcomingAssignments.map((assignment) => (
-                      <div
-                        key={assignment.assignment.id}
-                        className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:border-[#C9A05C] transition cursor-pointer"
-                        onClick={() => router.push(`/student/assignments/${assignment.assignment.id}`)}
-                      >
-                        <div>
-                          <h3 className="font-medium text-gray-900">
-                            {assignment.assignment.title}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            Type: {assignment.assignment.type}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            Due: {new Date(assignment.assignment.dueDate).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
-                          Pending
-                        </span>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-            </div>
-          </div>
+            )}
 
-          {/* Right Column - Quick Actions & All Classes */}
-          <div className="space-y-6">
-            {/* Quick Actions */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-              <div className="space-y-3">
-                <button
-                  onClick={() => router.push('/student/classes')}
-                  className="w-full flex items-center space-x-3 p-3 bg-[#F5F0E8] rounded-lg hover:bg-[#C9A05C]/10 transition"
-                >
-                  <span className="text-2xl">📚</span>
-                  <span className="font-medium text-gray-900">My Classes</span>
-                </button>
-                <button
-                  onClick={() => router.push('/student/assignments')}
-                  className="w-full flex items-center space-x-3 p-3 bg-[#F5F0E8] rounded-lg hover:bg-[#C9A05C]/10 transition"
-                >
-                  <span className="text-2xl">📝</span>
-                  <span className="font-medium text-gray-900">Assignments</span>
-                </button>
-                <button
-                  onClick={() => router.push('/student/grades')}
-                  className="w-full flex items-center space-x-3 p-3 bg-[#F5F0E8] rounded-lg hover:bg-[#C9A05C]/10 transition"
-                >
-                  <span className="text-2xl">📊</span>
-                  <span className="font-medium text-gray-900">My Grades</span>
-                </button>
-                <button
-                  onClick={() => router.push('/student/messages')}
-                  className="w-full flex items-center space-x-3 p-3 bg-[#F5F0E8] rounded-lg hover:bg-[#C9A05C]/10 transition"
-                >
-                  <span className="text-2xl">💬</span>
-                  <span className="font-medium text-gray-900">Messages</span>
-                </button>
-              </div>
-            </div>
-
-            {/* All Classes Summary */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">All My Classes</h2>
-              {classes.length === 0 ? (
-                <p className="text-sm text-gray-500">No classes enrolled yet</p>
-              ) : (
-                <div className="space-y-3">
-                  {classes.slice(0, 5).map((classItem) => (
-                    <div
-                      key={classItem._id}
-                      className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:border-[#C9A05C] transition cursor-pointer"
-                      onClick={() => router.push(`/student/classes/${classItem._id}`)}
-                    >
-                      <div className="w-10 h-10 bg-[#C9A05C]/10 rounded-lg flex items-center justify-center text-[#C9A05C] font-semibold text-sm">
-                        {classItem.subjectId.code.slice(0, 2)}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900 text-sm">
-                          {classItem.subjectId.name}
-                        </p>
-                        <p className="text-xs text-gray-600">
-                          {classItem.tutorId.profile.firstName} {classItem.tutorId.profile.lastName}
-                        </p>
-                      </div>
+            {/* Assignments Tab */}
+            {activeTab === 'assignments' && (
+              <div>
+                <h2 className="text-2xl font-bold text-maroon mb-6">Assignments</h2>
+                
+                {/* Pending Assignments */}
+                {pendingAssignments.length > 0 && (
+                  <div className="mb-8">
+                    <h3 className="text-lg font-semibold text-gray-700 mb-4">Pending ({pendingAssignments.length})</h3>
+                    <div className="space-y-4">
+                      {pendingAssignments.map((assignment) => (
+                        <div key={assignment._id} className="border-l-4 border-gold bg-yellow-50 rounded-lg p-5">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h4 className="text-lg font-semibold text-maroon">{assignment.title}</h4>
+                              <p className="text-sm text-gray-600 mt-1">{assignment.class.subject.name}</p>
+                              <p className="text-sm text-gray-700 mt-2">{assignment.description}</p>
+                              <div className="mt-3 flex items-center gap-4 text-sm">
+                                <span className="text-red-600 font-semibold">
+                                  📅 Due: {assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : 'TBD'}
+                                </span>
+                                <span className="text-gray-700">📊 {assignment.totalPoints} Points</span>
+                              </div>
+                            </div>
+                            <Link href={`/student/assignments/${assignment._id}/submit`}>
+                              <button className="bg-gold text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-yellow-600 whitespace-nowrap">
+                                Submit Work
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
-              {classes.length > 5 && (
-                <button
-                  onClick={() => router.push('/student/classes')}
-                  className="w-full mt-4 text-sm text-[#C9A05C] hover:underline"
-                >
-                  View All Classes →
-                </button>
-              )}
-            </div>
+                  </div>
+                )}
+
+                {/* Graded Assignments */}
+                {gradedAssignments.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-700 mb-4">Graded ({gradedAssignments.length})</h3>
+                    <div className="space-y-4">
+                      {gradedAssignments.map((assignment) => (
+                        <div key={assignment._id} className="border border-gray-200 rounded-lg p-5">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h4 className="text-lg font-semibold text-maroon">{assignment.title}</h4>
+                              <p className="text-sm text-gray-600 mt-1">{assignment.class.subject.name}</p>
+                              <div className="mt-3">
+                                <span className="text-2xl font-bold text-green-600">
+                                  {assignment.submission?.score}/{assignment.totalPoints}
+                                </span>
+                                <span className="ml-2 text-sm text-gray-600">
+                                  ({((assignment.submission?.score || 0) / assignment.totalPoints * 100).toFixed(0)}%)
+                                </span>
+                              </div>
+                              {assignment.submission?.feedback && (
+                                <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                                  <p className="text-sm font-semibold text-blue-900">Tutor Feedback:</p>
+                                  <p className="text-sm text-blue-800 mt-1">{assignment.submission.feedback}</p>
+                                </div>
+                              )}
+                            </div>
+                            <Link href={`/student/assignments/${assignment._id}`}>
+                              <button className="bg-maroon text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-900">
+                                View Details
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {assignments.length === 0 && (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500 text-lg">No assignments yet</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Progress Reports Tab */}
+            {activeTab === 'progress' && (
+              <div>
+                <h2 className="text-2xl font-bold text-maroon mb-6">Progress Reports</h2>
+                {reports.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500 text-lg">No progress reports yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {reports.map((report) => (
+                      <div key={report._id} className="border border-gray-200 rounded-lg p-5">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h3 className="text-lg font-semibold text-maroon">
+                              {report.class.subject.name}
+                            </h3>
+                            <p className="text-sm text-gray-600 mt-1">
+                              {new Date(report.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <span className="px-4 py-2 bg-green-100 text-green-800 rounded-lg font-bold text-xl">
+                            {report.overallGrade}
+                          </span>
+                        </div>
+                        <div className="mb-3">
+                          <p className="text-sm text-gray-700">
+                            📊 Attendance: {report.attendance}%
+                          </p>
+                        </div>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <p className="text-sm font-semibold text-gray-700 mb-2">Tutor Comments:</p>
+                          <p className="text-sm text-gray-800">{report.comments}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ title, value, color, icon }: { title: string; value: string | number; color: string; icon: string }) {
+  return (
+    <div className={`${color} text-white rounded-lg p-5 shadow-lg`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm opacity-90">{title}</p>
+          <p className="text-3xl font-bold mt-2">{value}</p>
+        </div>
+        <span className="text-4xl opacity-75">{icon}</span>
       </div>
     </div>
   );

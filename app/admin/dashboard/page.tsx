@@ -1,381 +1,380 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '@/lib/api';
+
+interface Tutor {
+  _id: string;
+  userId: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+  };
+  subjects: Array<{
+    name: string;
+    level: string;
+  }>;
+  qualifications: string[];
+  verificationStage: number;
+  verificationStatus: string;
+  cvUrl?: string;
+  certificatesUrl?: string[];
+  idCardUrl?: string;
+  interviewScheduled?: Date;
+  trialClassScheduled?: Date;
+  createdAt: Date;
+}
+
+interface Stats {
+  totalTutors: number;
+  pendingVerification: number;
+  activeTutors: number;
+  totalStudents: number;
+  totalClasses: number;
+  totalRevenue: number;
+}
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalStudents: 0,
-    totalParents: 0,
+  const apiBase = process.env.NEXT_PUBLIC_API_URL;
+  const [stats, setStats] = useState<Stats>({
     totalTutors: 0,
-    verifiedTutors: 0,
-    pendingTutors: 0,
+    pendingVerification: 0,
+    activeTutors: 0,
+    totalStudents: 0,
     totalClasses: 0,
-    totalRevenue: 0,
-    pendingPayments: 0,
+    totalRevenue: 0
   });
-  const [recentUsers, setRecentUsers] = useState<any[]>([]);
-  const [pendingVerifications, setPendingVerifications] = useState<any[]>([]);
-  const [recentPayments, setRecentPayments] = useState<any[]>([]);
+  const [pendingTutors, setPendingTutors] = useState<Tutor[]>([]);
+  const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
-    fetchData();
+    fetchDashboardData();
   }, []);
 
-  const fetchData = async () => {
+  const fetchDashboardData = async () => {
     try {
-      const [studentsRes, parentsRes, tutorsRes, classesRes, paymentsRes] = await Promise.all([
-        api.get('/students'),
-        api.get('/parents'),
-        api.get('/tutors'),
-        api.get('/classes'),
-        api.get('/payments'),
-      ]);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        router.push('/login');
+        return;
+      }
 
-      const students = studentsRes.data.data;
-      const parents = parentsRes.data.data;
-      const tutors = tutorsRes.data.data;
-      const classes = classesRes.data.data;
-      const payments = paymentsRes.data.data;
-
-      setStats({
-        totalUsers: students.length + parents.length + tutors.length,
-        totalStudents: students.length,
-        totalParents: parents.length,
-        totalTutors: tutors.length,
-        verifiedTutors: tutors.filter((t: any) => t.overallVerificationStatus === 'verified').length,
-        pendingTutors: tutors.filter((t: any) => 
-          t.overallVerificationStatus === 'pending' || t.overallVerificationStatus === 'in-progress'
-        ).length,
-        totalClasses: classes.length,
-        totalRevenue: payments.filter((p: any) => p.status === 'completed').reduce((sum: number, p: any) => sum + p.amount, 0),
-        pendingPayments: payments.filter((p: any) => p.status === 'pending').length,
+      // Fetch stats
+      const statsRes = await fetch(`${apiBase}/admin/stats`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
+      const statsData = await statsRes.json();
+      setStats(statsData);
 
-      const allUsers = [
-        ...students.map((s: any) => ({ ...s, type: 'Student' })),
-        ...parents.map((p: any) => ({ ...p, type: 'Parent' })),
-        ...tutors.map((t: any) => ({ ...t, type: 'Tutor' })),
-      ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setRecentUsers(allUsers.slice(0, 5));
-
-      const pending = tutors.filter((t: any) => 
-        t.overallVerificationStatus === 'pending' || t.overallVerificationStatus === 'in-progress'
-      );
-      setPendingVerifications(pending.slice(0, 5));
-
-      setRecentPayments(payments.slice(0, 5));
+      // Fetch pending tutors
+      const tutorsRes = await fetch(`${apiBase}/tutors?verificationStatus=pending`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const tutorsData = await tutorsRes.json();
+      setPendingTutors(tutorsData);
 
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching dashboard data:', error);
       setLoading(false);
     }
   };
 
+  const handleVerificationAction = async (tutorId: string, action: string, stage?: number) => {
+    setActionLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${apiBase}/tutors/${tutorId}/verification`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action,
+          stage,
+          comments: action === 'reject' ? 'Requirements not met' : undefined
+        })
+      });
+
+      if (response.ok) {
+        alert(`Tutor ${action}ed successfully!`);
+        setSelectedTutor(null);
+        fetchDashboardData();
+      } else {
+        const error = await response.json();
+        alert(error.message || 'Action failed');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Action failed');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const getStageLabel = (stage: number) => {
+    const stages = [
+      'Application Submitted',
+      'Documents Verified',
+      'Interview Scheduled',
+      'Interview Completed',
+      'Trial Class Scheduled',
+      'Trial Class Completed',
+      'Approved'
+    ];
+    return stages[stage - 1] || 'Unknown';
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F5F0E8] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C9A05C] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
-        </div>
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <div className="text-2xl text-maroon">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F0E8]">
-      <header className="bg-white shadow-sm border-b border-[#C9A05C]/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-sm text-gray-600 mt-1">Caesarea Smart School Platform Management</p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => router.push('/admin/settings')}
-                className="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
-              >
-                ⚙️ Settings
-              </button>
-              <button
-                onClick={() => router.push('/admin/reports')}
-                className="px-4 py-2 text-sm bg-[#C9A05C] text-white rounded-lg hover:bg-[#C9A05C]/90 transition"
-              >
-                📊 Reports
-              </button>
-            </div>
-          </div>
+    <div className="min-h-screen bg-cream">
+      {/* Header */}
+      <header className="bg-maroon text-white py-6 px-8 shadow-lg">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-3xl font-bold">Caesarea Smart School - Admin Dashboard</h1>
+          <p className="text-gold mt-2">Manage tutors, students, and system operations</p>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-gray-600">Total Users</h3>
-              <span className="text-2xl">👥</span>
-            </div>
-            <p className="text-3xl font-bold text-gray-900">{stats.totalUsers}</p>
-            <div className="flex items-center space-x-4 mt-3 text-sm">
-              <span className="text-blue-600">{stats.totalStudents} students</span>
-              <span className="text-green-600">{stats.totalParents} parents</span>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-gray-600">Tutors</h3>
-              <span className="text-2xl">👨‍🏫</span>
-            </div>
-            <p className="text-3xl font-bold text-gray-900">{stats.totalTutors}</p>
-            <div className="flex items-center space-x-4 mt-3 text-sm">
-              <span className="text-green-600">✓ {stats.verifiedTutors} verified</span>
-              <span className="text-yellow-600">⏳ {stats.pendingTutors} pending</span>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-gray-600">Total Revenue</h3>
-              <span className="text-2xl">💰</span>
-            </div>
-            <p className="text-3xl font-bold text-green-600">
-              ₦{stats.totalRevenue.toLocaleString()}
-            </p>
-            <p className="text-sm text-gray-600 mt-3">
-              {stats.pendingPayments} pending payments
-            </p>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-gray-600">Active Classes</h3>
-              <span className="text-2xl">📚</span>
-            </div>
-            <p className="text-3xl font-bold text-gray-900">{stats.totalClasses}</p>
-            <button
-              onClick={() => router.push('/admin/classes')}
-              className="text-sm text-[#C9A05C] hover:underline mt-3"
-            >
-              View all classes →
-            </button>
-          </div>
+      <div className="max-w-7xl mx-auto px-8 py-8">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
+          <StatCard 
+            title="Total Tutors" 
+            value={stats.totalTutors} 
+            color="bg-maroon"
+          />
+          <StatCard 
+            title="Pending Verification" 
+            value={stats.pendingVerification} 
+            color="bg-gold"
+          />
+          <StatCard 
+            title="Active Tutors" 
+            value={stats.activeTutors} 
+            color="bg-green-600"
+          />
+          <StatCard 
+            title="Total Students" 
+            value={stats.totalStudents} 
+            color="bg-blue-600"
+          />
+          <StatCard 
+            title="Total Classes" 
+            value={stats.totalClasses} 
+            color="bg-purple-600"
+          />
+          <StatCard 
+            title="Revenue (₦)" 
+            value={stats.totalRevenue.toLocaleString()} 
+            color="bg-green-700"
+          />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-              <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Pending Tutor Verifications</h2>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {stats.pendingTutors} tutors awaiting verification
-                  </p>
-                </div>
-                <button
-                  onClick={() => router.push('/admin/tutors/pending')}
-                  className="text-sm text-[#C9A05C] hover:underline"
+        {/* Pending Tutors Section */}
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-2xl font-bold text-maroon mb-6">
+            Pending Tutor Verifications ({pendingTutors.length})
+          </h2>
+
+          {pendingTutors.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">No pending verifications</p>
+          ) : (
+            <div className="space-y-4">
+              {pendingTutors.map((tutor) => (
+                <div 
+                  key={tutor._id} 
+                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => setSelectedTutor(tutor)}
                 >
-                  View All
-                </button>
-              </div>
-              <div className="p-6">
-                {pendingVerifications.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">No pending verifications</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {pendingVerifications.map((tutor) => (
-                      <div
-                        key={tutor._id}
-                        className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-[#C9A05C] transition cursor-pointer"
-                        onClick={() => router.push(`/admin/tutors/${tutor._id}/verify`)}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-[#C9A05C]/10 rounded-full flex items-center justify-center">
-                            <span className="text-[#C9A05C] font-semibold">
-                              {tutor.userId?.profile?.firstName?.[0] || 'T'}
-                            </span>
-                          </div>
-                          <div>
-                            <h3 className="font-medium text-gray-900">
-                              {tutor.userId?.profile?.firstName || 'Unknown'} {tutor.userId?.profile?.lastName || ''}
-                            </h3>
-                            <p className="text-sm text-gray-600">
-                              Code: {tutor.tutorCode}
-                            </p>
-                          </div>
-                        </div>
-                        <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
-                          Review
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-maroon">
+                        {tutor.userId.firstName} {tutor.userId.lastName}
+                      </h3>
+                      <p className="text-gray-600">{tutor.userId.email}</p>
+                      <p className="text-gray-600">{tutor.userId.phoneNumber}</p>
+                      <div className="mt-2">
+                        <span className="text-sm text-gray-500">Subjects: </span>
+                        <span className="text-sm text-gray-700">
+                          {tutor.subjects.map(s => `${s.name} (${s.level})`).join(', ')}
                         </span>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-              <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Recent Payments</h2>
-                <button
-                  onClick={() => router.push('/admin/payments')}
-                  className="text-sm text-[#C9A05C] hover:underline"
-                >
-                  View All
-                </button>
-              </div>
-              <div className="p-6">
-                {recentPayments.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">No payments yet</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {recentPayments.map((payment) => (
-                      <div
-                        key={payment._id}
-                        className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
-                      >
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {payment.paymentType?.replace('-', ' ').toUpperCase()}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {new Date(payment.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-gray-900">
-                            ₦{payment.amount.toLocaleString()}
-                          </p>
-                          <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                            payment.status === 'completed'
-                              ? 'bg-green-100 text-green-800'
-                              : payment.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {payment.status}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-              <div className="space-y-3">
-                <button
-                  onClick={() => router.push('/admin/users')}
-                  className="w-full flex items-center space-x-3 p-3 bg-[#F5F0E8] rounded-lg hover:bg-[#C9A05C]/10 transition"
-                >
-                  <span className="text-2xl">👥</span>
-                  <span className="font-medium text-gray-900">Manage Users</span>
-                </button>
-                <button
-                  onClick={() => router.push('/admin/tutors/pending')}
-                  className="w-full flex items-center space-x-3 p-3 bg-[#F5F0E8] rounded-lg hover:bg-[#C9A05C]/10 transition"
-                >
-                  <span className="text-2xl">✅</span>
-                  <span className="font-medium text-gray-900">Verify Tutors</span>
-                </button>
-                <button
-                  onClick={() => router.push('/admin/subjects')}
-                  className="w-full flex items-center space-x-3 p-3 bg-[#F5F0E8] rounded-lg hover:bg-[#C9A05C]/10 transition"
-                >
-                  <span className="text-2xl">📚</span>
-                  <span className="font-medium text-gray-900">Manage Subjects</span>
-                </button>
-                <button
-                  onClick={() => router.push('/admin/payments')}
-                  className="w-full flex items-center space-x-3 p-3 bg-[#F5F0E8] rounded-lg hover:bg-[#C9A05C]/10 transition"
-                >
-                  <span className="text-2xl">💳</span>
-                  <span className="font-medium text-gray-900">View Payments</span>
-                </button>
-                <button
-                  onClick={() => router.push('/admin/analytics')}
-                  className="w-full flex items-center space-x-3 p-3 bg-[#F5F0E8] rounded-lg hover:bg-[#C9A05C]/10 transition"
-                >
-                  <span className="text-2xl">📊</span>
-                  <span className="font-medium text-gray-900">Analytics</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Recent Registrations</h3>
-              {recentUsers.length === 0 ? (
-                <p className="text-sm text-gray-500">No recent users</p>
-              ) : (
-                <div className="space-y-3">
-                  {recentUsers.map((user) => (
-                    <div
-                      key={user._id}
-                      className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition"
-                    >
-                      <div className="w-8 h-8 bg-[#C9A05C]/10 rounded-full flex items-center justify-center text-xs font-semibold text-[#C9A05C]">
-                        {user.userId?.profile?.firstName?.[0] || user.type[0]}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {user.userId?.profile?.firstName || 'User'} {user.userId?.profile?.lastName || ''}
-                        </p>
-                        <p className="text-xs text-gray-600">{user.type}</p>
-                      </div>
                     </div>
+                    <div className="text-right">
+                      <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
+                        tutor.verificationStage < 3 ? 'bg-yellow-100 text-yellow-800' :
+                        tutor.verificationStage < 5 ? 'bg-blue-100 text-blue-800' :
+                        'bg-purple-100 text-purple-800'
+                      }`}>
+                        Stage {tutor.verificationStage}: {getStageLabel(tutor.verificationStage)}
+                      </span>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Applied: {new Date(tutor.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Tutor Detail Modal */}
+      {selectedTutor && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-maroon text-white p-6 flex justify-between items-center">
+              <h2 className="text-2xl font-bold">
+                {selectedTutor.userId.firstName} {selectedTutor.userId.lastName}
+              </h2>
+              <button 
+                onClick={() => setSelectedTutor(null)}
+                className="text-white hover:text-gold text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-6">
+              {/* Contact Info */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-maroon mb-3">Contact Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Email</p>
+                    <p className="text-gray-800">{selectedTutor.userId.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Phone</p>
+                    <p className="text-gray-800">{selectedTutor.userId.phoneNumber}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Subjects */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-maroon mb-3">Subjects & Levels</h3>
+                <div className="flex flex-wrap gap-2">
+                  {selectedTutor.subjects.map((subject, idx) => (
+                    <span key={idx} className="bg-gold text-white px-3 py-1 rounded-full text-sm">
+                      {subject.name} - {subject.level}
+                    </span>
                   ))}
                 </div>
-              )}
-            </div>
+              </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">System Status</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">API Status</span>
-                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                    ✓ Operational
-                  </span>
+              {/* Qualifications */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-maroon mb-3">Qualifications</h3>
+                <ul className="list-disc list-inside space-y-1">
+                  {selectedTutor.qualifications.map((qual, idx) => (
+                    <li key={idx} className="text-gray-700">{qual}</li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Documents */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-maroon mb-3">Documents</h3>
+                <div className="space-y-2">
+                  {selectedTutor.cvUrl && (
+                    <a href={selectedTutor.cvUrl} target="_blank" rel="noopener noreferrer" 
+                       className="block text-blue-600 hover:underline">
+                      📄 View CV/Resume
+                    </a>
+                  )}
+                  {selectedTutor.certificatesUrl && selectedTutor.certificatesUrl.length > 0 && (
+                    <div>
+                      <p className="text-sm text-gray-500">Certificates:</p>
+                      {selectedTutor.certificatesUrl.map((url, idx) => (
+                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer"
+                           className="block text-blue-600 hover:underline ml-4">
+                          📜 Certificate {idx + 1}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  {selectedTutor.idCardUrl && (
+                    <a href={selectedTutor.idCardUrl} target="_blank" rel="noopener noreferrer"
+                       className="block text-blue-600 hover:underline">
+                      🪪 View ID Card
+                    </a>
+                  )}
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Database</span>
-                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                    ✓ Connected
-                  </span>
+              </div>
+
+              {/* Current Stage */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-maroon mb-3">Verification Progress</h3>
+                <div className="bg-gray-100 p-4 rounded-lg">
+                  <p className="text-lg">
+                    <span className="font-semibold">Current Stage:</span> {selectedTutor.verificationStage}
+                  </p>
+                  <p className="text-gray-700">{getStageLabel(selectedTutor.verificationStage)}</p>
+                  {selectedTutor.interviewScheduled && (
+                    <p className="text-sm text-gray-600 mt-2">
+                      Interview: {new Date(selectedTutor.interviewScheduled).toLocaleString()}
+                    </p>
+                  )}
+                  {selectedTutor.trialClassScheduled && (
+                    <p className="text-sm text-gray-600 mt-2">
+                      Trial Class: {new Date(selectedTutor.trialClassScheduled).toLocaleString()}
+                    </p>
+                  )}
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Payments</span>
-                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                    ✓ Active
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Notifications</span>
-                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                    ✓ Online
-                  </span>
-                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-4">
+                {selectedTutor.verificationStage < 7 && (
+                  <button
+                    onClick={() => handleVerificationAction(
+                      selectedTutor._id, 
+                      'approve', 
+                      selectedTutor.verificationStage + 1
+                    )}
+                    disabled={actionLoading}
+                    className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {actionLoading ? 'Processing...' : `Move to Stage ${selectedTutor.verificationStage + 1}`}
+                  </button>
+                )}
+                
+                <button
+                  onClick={() => handleVerificationAction(selectedTutor._id, 'reject')}
+                  disabled={actionLoading}
+                  className="flex-1 bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50"
+                >
+                  Reject Application
+                </button>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
+    </div>
+  );
+}
+
+function StatCard({ title, value, color }: { title: string; value: string | number; color: string }) {
+  return (
+    <div className={`${color} text-white rounded-lg p-4 shadow-lg`}>
+      <p className="text-sm opacity-90">{title}</p>
+      <p className="text-2xl font-bold mt-1">{value}</p>
     </div>
   );
 }

@@ -1,392 +1,427 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '@/lib/api';
+import Link from 'next/link';
 
-interface TutorData {
-  id: string;
-  tutorCode: string;
-  userId: {
-    profile: {
-      firstName: string;
-      lastName: string;
-      profilePicture?: string;
+interface Class {
+  _id: string;
+  subject: {
+    name: string;
+    level: string;
+  };
+  students: any[];
+  schedule: Array<{
+    day: string;
+    startTime: string;
+    endTime: string;
+  }>;
+  zoomLink: string;
+  status: string;
+}
+
+interface Assignment {
+  _id: string;
+  title: string;
+  class: {
+    subject: {
+      name: string;
     };
   };
-  overallVerificationStatus: string;
-  rating: {
-    overall: number;
-    totalReviews: number;
-  };
-  statistics: {
-    totalClasses: number;
-    totalStudents: number;
-    averageAttendance: number;
-  };
-  earnings: {
-    totalEarned: number;
-    pendingEarnings: number;
-  };
+  dueDate: Date;
+  submissions: any[];
+  totalPoints: number;
 }
+
+type TutorProfile = {
+  _id: string;
+  userId: any;
+  subjects?: Array<{
+    name: string;
+    level?: string;
+  }>;
+  verificationStatus?: string;
+  rating?: number;
+  totalReviews?: number;
+  wallet?: {
+    balance?: number;
+    pendingEarnings?: number;
+  };
+};
 
 export default function TutorDashboard() {
   const router = useRouter();
-  const [tutor, setTutor] = useState<TutorData | null>(null);
-  const [classes, setClasses] = useState<any[]>([]);
-  const [todayClasses, setTodayClasses] = useState<any[]>([]);
-  const [pendingAssignments, setPendingAssignments] = useState<any[]>([]);
+  const apiBase = process.env.NEXT_PUBLIC_API_URL;
+  const [profile, setProfile] = useState<TutorProfile | null>(null);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'classes' | 'assignments' | 'earnings'>('classes');
+  const [error, setError] = useState<string>('');
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userId');
+    router.push('/login');
+  };
 
   useEffect(() => {
-    fetchData();
+    fetchDashboardData();
   }, []);
 
-  const fetchData = async () => {
+  const fetchDashboardData = async () => {
     try {
-      const userRes = await api.get('/auth/profile');
-      const userId = userRes.data.data.id;
+      const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+      if (!token || !userId) {
+        router.push('/login');
+        return;
+      }
 
-      const tutorRes = await api.get(`/tutors/user/${userId}`);
-      const tutorData = tutorRes.data.data;
-      setTutor(tutorData);
+      const authHeaders = { 'Authorization': `Bearer ${token}` };
 
-      const classesRes = await api.get(`/classes/tutor/${tutorData.id}`);
-      setClasses(classesRes.data.data);
+      // Fetch tutor profile using userId
+      const profileRes = await fetch(`${apiBase}/tutors/user/${userId}`, {
+        headers: authHeaders
+      });
+      const profileJson = await profileRes.json();
+      const profileData = profileJson.data || profileJson;
+      if (!profileRes.ok || !profileData) {
+        throw new Error(profileJson.message || 'Failed to load profile');
+      }
+      setProfile(profileData as TutorProfile);
 
-      const today = new Date().toLocaleString('en-US', { weekday: 'long' });
-      const todayClassesFiltered = classesRes.data.data.filter(
-        (c: any) => c.schedule?.day === today
-      );
-      setTodayClasses(todayClassesFiltered);
+      // Fetch classes for this tutor
+      const classesRes = await fetch(`${apiBase}/classes/tutor/${userId}`, {
+        headers: authHeaders
+      });
+      const classesJson = await classesRes.json();
+      const rawClasses = classesJson.data || classesJson || [];
+      const normalizedClasses: Class[] = rawClasses.map((cls: any) => ({
+        _id: cls._id,
+        subject: {
+          name: cls.subject?.name || cls.subjectId?.name || 'Subject',
+          level: cls.subject?.level || cls.subjectId?.level || cls.curriculum || ''
+        },
+        students: cls.students || [],
+        schedule: Array.isArray(cls.schedule)
+          ? cls.schedule
+          : cls.schedule
+            ? [{
+              day: cls.schedule.day,
+              startTime: cls.schedule.startTime,
+              endTime: cls.schedule.endTime
+            }]
+            : [],
+        zoomLink: cls.zoomLink || '',
+        status: cls.status || (cls.isActive ? 'active' : 'inactive')
+      }));
+      setClasses(normalizedClasses);
 
-      const assignmentsRes = await api.get(`/assignments?tutorId=${tutorData.id}`);
-      const pending = assignmentsRes.data.data.filter(
-        (a: any) => a.submissions?.some((s: any) => s.status === 'submitted')
-      );
-      setPendingAssignments(pending.slice(0, 5));
+      // Fetch assignments created by this tutor
+      const assignmentsRes = await fetch(`${apiBase}/assignments?tutorId=${userId}`, {
+        headers: authHeaders
+      });
+      const assignmentsJson = await assignmentsRes.json();
+      const rawAssignments = assignmentsJson.data || assignmentsJson || [];
+      const normalizedAssignments: Assignment[] = rawAssignments.map((assignment: any) => ({
+        _id: assignment._id,
+        title: assignment.title || 'Assignment',
+        class: {
+          subject: {
+            name: assignment.class?.subject?.name || assignment.subjectId?.name || 'Subject'
+          }
+        },
+        dueDate: assignment.dueDate,
+        submissions: assignment.submissions || [],
+        totalPoints: assignment.totalPoints || assignment.maxScore || 0,
+      }));
+      setAssignments(normalizedAssignments);
 
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching dashboard data:', error);
+      setError('Could not load dashboard data. Please try again.');
       setLoading(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F5F0E8] flex items-center justify-center">
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <div className="text-2xl text-maroon">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C9A05C] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading your dashboard...</p>
+          <p className="text-xl text-maroon mb-4">{error || 'Profile not found'}</p>
+          <button
+            onClick={() => router.push('/login')}
+            className="bg-maroon text-white px-6 py-2 rounded-lg"
+          >
+            Go to Login
+          </button>
         </div>
       </div>
     );
   }
 
-  if (!tutor) {
-    return (
-      <div className="min-h-screen bg-[#F5F0E8] flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600">No tutor profile found.</p>
-        </div>
-      </div>
-    );
-  }
+  const firstName = profile.userId?.profile?.firstName || profile.userId?.firstName || 'Tutor';
+  const lastName = profile.userId?.profile?.lastName || profile.userId?.lastName || '';
+  const rating = Number(profile.rating || (profile as any).rating?.overall || 0) || 0;
+  const walletBalance = profile.wallet?.balance || 0;
+  const walletPending = profile.wallet?.pendingEarnings || 0;
+  const verification = profile.verificationStatus === 'approved' ? '✓ Verified' : '⏳ Pending';
 
   return (
-    <div className="min-h-screen bg-[#F5F0E8]">
-      <header className="bg-white shadow-sm border-b border-[#C9A05C]/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              {tutor.userId.profile.profilePicture ? (
-                <img
-                  src={tutor.userId.profile.profilePicture}
-                  alt="Profile"
-                  className="w-12 h-12 rounded-full border-2 border-[#C9A05C]"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-[#C9A05C] flex items-center justify-center text-white font-semibold">
-                  {tutor.userId.profile.firstName[0]}
-                  {tutor.userId.profile.lastName[0]}
-                </div>
-              )}
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900">
-                  Welcome back, {tutor.userId.profile.firstName}!
-                </h1>
-                <p className="text-sm text-gray-600">
-                  Tutor Portal • {tutor.tutorCode}
-                </p>
-              </div>
+    <div className="min-h-screen bg-cream">
+      {/* Header */}
+      <header className="bg-maroon text-white py-6 px-8 shadow-lg">
+        <div className="max-w-7xl mx-auto flex justify-between items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Tutor Dashboard</h1>
+            <p className="text-gold mt-1">Welcome, {firstName} {lastName}</p>
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="text-right">
+              <p className="text-sm opacity-90">Verification Status</p>
+              <p className="text-lg font-semibold">{verification}</p>
             </div>
-            <div className="flex items-center space-x-3">
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                tutor.overallVerificationStatus === 'verified' 
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-yellow-100 text-yellow-800'
-              }`}>
-                {tutor.overallVerificationStatus === 'verified' ? '✓ Verified' : 'Pending Verification'}
-              </span>
-              <button
-                onClick={() => router.push('/tutor/profile')}
-                className="px-4 py-2 text-sm border border-[#C9A05C] text-[#C9A05C] rounded-lg hover:bg-[#C9A05C] hover:text-white transition"
-              >
-                View Profile
-              </button>
-            </div>
+            <button
+              onClick={handleLogout}
+              className="bg-white text-maroon px-4 py-2 rounded-lg font-semibold hover:bg-gold hover:text-white transition-colors"
+            >
+              Logout
+            </button>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-8 py-8">
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">My Classes</p>
-                <p className="text-3xl font-bold text-[#C9A05C] mt-1">
-                  {tutor.statistics.totalClasses}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-[#C9A05C]/10 rounded-full flex items-center justify-center">
-                <span className="text-2xl">📚</span>
-              </div>
-            </div>
-          </div>
+          <StatCard
+            title="Total Classes"
+            value={classes.length}
+            color="bg-maroon"
+            icon="📚"
+          />
+          <StatCard
+            title="Active Students"
+            value={classes.reduce((sum, c) => sum + c.students.length, 0)}
+            color="bg-gold"
+            icon="👥"
+          />
+          <StatCard
+            title="Assignments"
+            value={assignments.length}
+            color="bg-blue-600"
+            icon="📝"
+          />
+          <StatCard
+            title="Rating"
+            value={`${rating.toFixed(1)} ⭐`}
+            color="bg-green-600"
+            icon="⭐"
+          />
+        </div>
 
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Students</p>
-                <p className="text-3xl font-bold text-blue-600 mt-1">
-                  {tutor.statistics.totalStudents}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">👨‍🎓</span>
-              </div>
+        {/* Wallet Card */}
+        <div className="bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg p-6 mb-8 shadow-lg">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-sm opacity-90">Available Balance</p>
+              <p className="text-4xl font-bold mt-1">₦{walletBalance.toLocaleString()}</p>
+              <p className="text-sm mt-2">Pending: ₦{walletPending.toLocaleString()}</p>
             </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Rating</p>
-                <p className="text-3xl font-bold text-yellow-600 mt-1">
-                  {tutor.rating.overall.toFixed(1)} ⭐
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {tutor.rating.totalReviews} reviews
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">⭐</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Earnings</p>
-                <p className="text-3xl font-bold text-green-600 mt-1">
-                  ₦{tutor.earnings.totalEarned.toLocaleString()}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Pending: ₦{tutor.earnings.pendingEarnings.toLocaleString()}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">💰</span>
-              </div>
-            </div>
+            <button className="bg-white text-green-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100">
+              Withdraw Funds
+            </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-              <div className="p-6 border-b border-gray-100">
-                <h2 className="text-lg font-semibold text-gray-900">Today's Classes</h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  {new Date().toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </p>
-              </div>
-              <div className="p-6">
-                {todayClasses.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">No classes scheduled for today</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {todayClasses.map((classItem) => {
-                      const nextSession = classItem.sessions.find((s: any) => s.status === 'scheduled');
-                      return (
-                        <div
-                          key={classItem._id}
-                          className="flex items-center justify-between p-4 bg-[#F5F0E8] rounded-lg"
-                        >
-                          <div className="flex items-center space-x-4">
-                            <div className="w-12 h-12 bg-[#C9A05C] rounded-lg flex items-center justify-center text-white font-semibold">
-                              {classItem.subjectId?.code?.slice(0, 2) || 'CL'}
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-gray-900">
-                                {classItem.subjectId?.name || 'Class'}
-                              </h3>
-                              <p className="text-sm text-gray-600">
-                                {classItem.currentEnrollment} students enrolled
-                              </p>
-                              <p className="text-sm text-gray-500">
-                                {classItem.schedule?.startTime} - {classItem.schedule?.endTime}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {nextSession?.zoomMeetingLink && (
-                              <a
-                                href={nextSession.zoomMeetingLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-4 py-2 bg-[#0E72ED] text-white rounded-lg hover:bg-[#0E72ED]/90 transition text-sm font-medium"
-                              >
-                                Start Class
-                              </a>
-                            )}
-                            <button
-                              onClick={() => router.push(`/tutor/classes/${classItem._id}`)}
-                              className="px-4 py-2 border border-[#C9A05C] text-[#C9A05C] rounded-lg hover:bg-[#C9A05C] hover:text-white transition text-sm"
-                            >
-                              Details
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
+        {/* Tabs */}
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab('classes')}
+              className={`flex-1 py-4 px-6 font-semibold ${
+                activeTab === 'classes' 
+                  ? 'bg-maroon text-white' 
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              My Classes
+            </button>
+            <button
+              onClick={() => setActiveTab('assignments')}
+              className={`flex-1 py-4 px-6 font-semibold ${
+                activeTab === 'assignments' 
+                  ? 'bg-maroon text-white' 
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              Assignments
+            </button>
+            <button
+              onClick={() => setActiveTab('earnings')}
+              className={`flex-1 py-4 px-6 font-semibold ${
+                activeTab === 'earnings' 
+                  ? 'bg-maroon text-white' 
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              Earnings History
+            </button>
+          </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-              <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Pending Grading</h2>
-                <button
-                  onClick={() => router.push('/tutor/assignments')}
-                  className="text-sm text-[#C9A05C] hover:underline"
-                >
-                  View All
-                </button>
-              </div>
-              <div className="p-6">
-                {pendingAssignments.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">All caught up! 🎉</p>
+          <div className="p-6">
+            {/* Classes Tab */}
+            {activeTab === 'classes' && (
+              <div>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-maroon">My Classes</h2>
+                  <Link href="/tutor/classes/create">
+                    <button className="bg-gold text-white px-6 py-2 rounded-lg font-semibold hover:bg-yellow-600">
+                      + Create New Class
+                    </button>
+                  </Link>
+                </div>
+
+                {classes.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500 text-lg">No classes yet</p>
+                    <p className="text-gray-400 mt-2">Create your first class to get started</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {pendingAssignments.map((assignment) => (
-                      <div
-                        key={assignment._id}
-                        className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:border-[#C9A05C] transition cursor-pointer"
-                        onClick={() => router.push(`/tutor/assignments/${assignment._id}`)}
-                      >
-                        <div>
-                          <h3 className="font-medium text-gray-900">{assignment.title}</h3>
-                          <p className="text-sm text-gray-600">
-                            {assignment.submissions?.filter((s: any) => s.status === 'submitted').length} submissions pending
-                          </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {classes.map((classItem) => (
+                      <div key={classItem._id} className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="text-lg font-semibold text-maroon">
+                              {classItem.subject.name}
+                            </h3>
+                            <p className="text-sm text-gray-600">{classItem.subject.level}</p>
+                          </div>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            classItem.status === 'active' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {classItem.status}
+                          </span>
                         </div>
-                        <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
-                          Grade Now
-                        </span>
+
+                        <div className="space-y-2 mb-4">
+                          <p className="text-sm text-gray-700">
+                            👥 {classItem.students.length} Students
+                          </p>
+                          {classItem.schedule.map((sched, idx) => (
+                            <p key={idx} className="text-sm text-gray-700">
+                              📅 {sched.day}: {sched.startTime} - {sched.endTime}
+                            </p>
+                          ))}
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Link href={`/tutor/classes/${classItem._id}`} className="flex-1">
+                            <button className="w-full bg-maroon text-white py-2 rounded-lg text-sm font-semibold hover:bg-red-900">
+                              View Details
+                            </button>
+                          </Link>
+                          {classItem.zoomLink && (
+                            <a href={classItem.zoomLink} target="_blank" rel="noopener noreferrer" className="flex-1">
+                              <button className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-blue-700">
+                                Join Class
+                              </button>
+                            </a>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-            </div>
-          </div>
+            )}
 
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-              <div className="space-y-3">
-                <button
-                  onClick={() => router.push('/tutor/classes/create')}
-                  className="w-full flex items-center space-x-3 p-3 bg-[#8B1538] text-white rounded-lg hover:bg-[#8B1538]/90 transition"
-                >
-                  <span className="text-2xl">➕</span>
-                  <span className="font-medium">Create New Class</span>
-                </button>
-                <button
-                  onClick={() => router.push('/tutor/classes')}
-                  className="w-full flex items-center space-x-3 p-3 bg-[#F5F0E8] rounded-lg hover:bg-[#C9A05C]/10 transition"
-                >
-                  <span className="text-2xl">📚</span>
-                  <span className="font-medium text-gray-900">My Classes</span>
-                </button>
-                <button
-                  onClick={() => router.push('/tutor/students')}
-                  className="w-full flex items-center space-x-3 p-3 bg-[#F5F0E8] rounded-lg hover:bg-[#C9A05C]/10 transition"
-                >
-                  <span className="text-2xl">👨‍🎓</span>
-                  <span className="font-medium text-gray-900">My Students</span>
-                </button>
-                <button
-                  onClick={() => router.push('/tutor/assignments')}
-                  className="w-full flex items-center space-x-3 p-3 bg-[#F5F0E8] rounded-lg hover:bg-[#C9A05C]/10 transition"
-                >
-                  <span className="text-2xl">📝</span>
-                  <span className="font-medium text-gray-900">Assignments</span>
-                </button>
-                <button
-                  onClick={() => router.push('/tutor/earnings')}
-                  className="w-full flex items-center space-x-3 p-3 bg-[#F5F0E8] rounded-lg hover:bg-[#C9A05C]/10 transition"
-                >
-                  <span className="text-2xl">💰</span>
-                  <span className="font-medium text-gray-900">Earnings</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">All My Classes</h3>
-              {classes.length === 0 ? (
-                <p className="text-sm text-gray-500">No classes created yet</p>
-              ) : (
-                <div className="space-y-3">
-                  {classes.slice(0, 5).map((classItem) => (
-                    <div
-                      key={classItem._id}
-                      className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:border-[#C9A05C] transition cursor-pointer"
-                      onClick={() => router.push(`/tutor/classes/${classItem._id}`)}
-                    >
-                      <div className="w-10 h-10 bg-[#C9A05C]/10 rounded-lg flex items-center justify-center text-[#C9A05C] font-semibold text-sm">
-                        {classItem.subjectId?.code?.slice(0, 2) || 'CL'}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900 text-sm">
-                          {classItem.subjectId?.name || 'Class'}
-                        </p>
-                        <p className="text-xs text-gray-600">
-                          {classItem.currentEnrollment} students
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+            {/* Assignments Tab */}
+            {activeTab === 'assignments' && (
+              <div>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-maroon">Assignments</h2>
+                  <Link href="/tutor/assignments/create">
+                    <button className="bg-gold text-white px-6 py-2 rounded-lg font-semibold hover:bg-yellow-600">
+                      + Create Assignment
+                    </button>
+                  </Link>
                 </div>
-              )}
-            </div>
+
+                {assignments.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500 text-lg">No assignments yet</p>
+                    <p className="text-gray-400 mt-2">Create your first assignment</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {assignments.map((assignment) => (
+                      <div key={assignment._id} className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold text-maroon">{assignment.title}</h3>
+                            <p className="text-sm text-gray-600 mt-1">
+                              {assignment.class.subject.name}
+                            </p>
+                            <div className="mt-3 flex items-center gap-4 text-sm text-gray-700">
+                              <span>📝 {assignment.submissions.length} Submissions</span>
+                              <span>📊 {assignment.totalPoints} Points</span>
+                              <span>📅 Due: {new Date(assignment.dueDate).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                          <Link href={`/tutor/assignments/${assignment._id}`}>
+                            <button className="bg-maroon text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-900">
+                              Grade Submissions
+                            </button>
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Earnings Tab */}
+            {activeTab === 'earnings' && (
+              <div>
+                <h2 className="text-2xl font-bold text-maroon mb-6">Earnings History</h2>
+                <div className="text-center py-12">
+                  <p className="text-gray-500">Earnings history will be displayed here</p>
+                  <p className="text-gray-400 mt-2">Track all your payments and withdrawals</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ title, value, color, icon }: { title: string; value: string | number; color: string; icon: string }) {
+  return (
+    <div className={`${color} text-white rounded-lg p-5 shadow-lg`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm opacity-90">{title}</p>
+          <p className="text-3xl font-bold mt-2">{value}</p>
+        </div>
+        <span className="text-4xl opacity-75">{icon}</span>
       </div>
     </div>
   );

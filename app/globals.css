@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand-wine: #800020;
+  --brand-gold: #FFD700;
+}
+
+body {
+  background-color: #ffffff;
+}
+
+/* Utility helpers for consistent theming */
+.wine-bottom-border {
+  border-bottom: 2px solid var(--brand-wine);
+}
+
+.highlight-bg {
+  background-color: var(--brand-gold);
+}
+
+/* Dashboards: use wine as border, keep backgrounds white */
+header.bg-maroon {
+  background-color: #ffffff !important;
+  color: var(--brand-wine) !important;
+  border-bottom: 3px solid var(--brand-wine);
+}
+
+header.bg-maroon .text-white {
+  color: var(--brand-wine) !important;
+}
