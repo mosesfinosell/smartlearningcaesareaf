@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -270,25 +270,25 @@ export default function StudentDashboard() {
             title="Enrolled Classes"
             value={classes.length}
             color="bg-maroon"
-            icon="📚"
+            icon={<i className="fa-solid fa-book-open" aria-hidden="true" />}
           />
           <StatCard
             title="Pending Assignments"
             value={pendingAssignments.length}
             color="bg-gold"
-            icon="📝"
+            icon={<i className="fa-solid fa-pen-to-square" aria-hidden="true" />}
           />
           <StatCard
             title="Completed"
             value={gradedAssignments.length}
             color="bg-green-600"
-            icon="✓"
+            icon={<i className="fa-solid fa-circle-check" aria-hidden="true" />}
           />
           <StatCard
             title="Progress Reports"
             value={reports.length}
             color="bg-blue-600"
-            icon="📊"
+            icon={<i className="fa-solid fa-chart-line" aria-hidden="true" />}
           />
         </div>
 
@@ -372,15 +372,20 @@ export default function StudentDashboard() {
                         <p className="text-sm text-gray-600 mb-3">{classItem.subject.level || ''}</p>
                         
                         <div className="space-y-2 mb-4">
-                          <p className="text-sm text-gray-700">
-                            👨‍🏫 Tutor: {classItem.tutor.userId.firstName} {classItem.tutor.userId.lastName}
+                          <p className="text-sm text-gray-700 flex items-center gap-2">
+                            <i className="fa-solid fa-chalkboard-user text-gold" aria-hidden="true" />
+                            <span>
+                              Tutor: {classItem.tutor.userId.firstName} {classItem.tutor.userId.lastName}
+                            </span>
                           </p>
-                          <p className="text-sm text-gray-700">
-                            ⭐ Rating: {(classItem.tutor.rating || 0).toFixed(1)}
+                          <p className="text-sm text-gray-700 flex items-center gap-2">
+                            <i className="fa-solid fa-star text-gold" aria-hidden="true" />
+                            <span>Rating: {(classItem.tutor.rating || 0).toFixed(1)}</span>
                           </p>
                           {classItem.schedule.map((sched, idx) => (
-                            <p key={idx} className="text-sm text-gray-700">
-                              📅 {sched.day}: {sched.startTime} - {sched.endTime}
+                            <p key={idx} className="text-sm text-gray-700 flex items-center gap-2">
+                              <i className="fa-regular fa-calendar text-gold" aria-hidden="true" />
+                              <span>{sched.day}: {sched.startTime} - {sched.endTime}</span>
                             </p>
                           ))}
                         </div>
@@ -424,10 +429,14 @@ export default function StudentDashboard() {
                               <p className="text-sm text-gray-600 mt-1">{assignment.class.subject.name}</p>
                               <p className="text-sm text-gray-700 mt-2">{assignment.description}</p>
                               <div className="mt-3 flex items-center gap-4 text-sm">
-                                <span className="text-red-600 font-semibold">
-                                  📅 Due: {assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : 'TBD'}
+                                <span className="text-red-600 font-semibold flex items-center gap-2">
+                                  <i className="fa-regular fa-calendar-days" aria-hidden="true" />
+                                  <span>Due: {assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : 'TBD'}</span>
                                 </span>
-                                <span className="text-gray-700">📊 {assignment.totalPoints} Points</span>
+                                <span className="text-gray-700 flex items-center gap-2">
+                                  <i className="fa-solid fa-chart-bar text-gold" aria-hidden="true" />
+                                  <span>{assignment.totalPoints} Points</span>
+                                </span>
                               </div>
                             </div>
                             <Link href={`/student/assignments/${assignment._id}/submit`}>
@@ -514,8 +523,9 @@ export default function StudentDashboard() {
                           </span>
                         </div>
                         <div className="mb-3">
-                          <p className="text-sm text-gray-700">
-                            📊 Attendance: {report.attendance}%
+                          <p className="text-sm text-gray-700 flex items-center gap-2">
+                            <i className="fa-solid fa-chart-column text-gold" aria-hidden="true" />
+                            <span>Attendance: {report.attendance}%</span>
                           </p>
                         </div>
                         <div className="bg-gray-50 p-4 rounded-lg">
@@ -535,7 +545,7 @@ export default function StudentDashboard() {
   );
 }
 
-function StatCard({ title, value, color, icon }: { title: string; value: string | number; color: string; icon: string }) {
+function StatCard({ title, value, color, icon }: { title: string; value: string | number; color: string; icon: ReactNode }) {
   return (
     <div className={`${color} text-white rounded-lg p-5 shadow-lg`}>
       <div className="flex items-center justify-between">
@@ -543,7 +553,7 @@ function StatCard({ title, value, color, icon }: { title: string; value: string 
           <p className="text-sm opacity-90">{title}</p>
           <p className="text-3xl font-bold mt-2">{value}</p>
         </div>
-        <span className="text-4xl opacity-75">{icon}</span>
+        <span className="text-4xl opacity-75 [&>*]:align-middle">{icon}</span>
       </div>
     </div>
   );

@@ -134,7 +134,7 @@ export default function RegisterPage() {
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-maroon mb-2">Join Caesarea Smart School</h1>
+          <h1 className="text-4xl font-bold text-maroon mb-2">Join SmartLearning by Caesarea College</h1>
           <p className="text-gray-600">Create your account to get started</p>
         </div>
 

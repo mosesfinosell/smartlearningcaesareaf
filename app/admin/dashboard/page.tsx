@@ -143,7 +143,7 @@ export default function AdminDashboard() {
       {/* Header */}
       <header className="bg-maroon text-white py-6 px-8 shadow-lg">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold">Caesarea Smart School - Admin Dashboard</h1>
+          <h1 className="text-3xl font-bold">SmartLearning by Caesarea College - Admin Dashboard</h1>
           <p className="text-gold mt-2">Manage tutors, students, and system operations</p>
         </div>
       </header>
@@ -292,26 +292,42 @@ export default function AdminDashboard() {
                 <h3 className="text-lg font-semibold text-maroon mb-3">Documents</h3>
                 <div className="space-y-2">
                   {selectedTutor.cvUrl && (
-                    <a href={selectedTutor.cvUrl} target="_blank" rel="noopener noreferrer" 
-                       className="block text-blue-600 hover:underline">
-                      📄 View CV/Resume
+                    <a
+                      href={selectedTutor.cvUrl}
+                      target="_blank"
+                      rel="noopener noreferrer" 
+                      className="block text-blue-600 hover:underline flex items-center gap-2"
+                    >
+                      <i className="fa-regular fa-file-lines" aria-hidden="true" />
+                      <span>View CV/Resume</span>
                     </a>
                   )}
                   {selectedTutor.certificatesUrl && selectedTutor.certificatesUrl.length > 0 && (
                     <div>
                       <p className="text-sm text-gray-500">Certificates:</p>
                       {selectedTutor.certificatesUrl.map((url, idx) => (
-                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer"
-                           className="block text-blue-600 hover:underline ml-4">
-                          📜 Certificate {idx + 1}
+                        <a
+                          key={idx}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-blue-600 hover:underline ml-4 flex items-center gap-2"
+                        >
+                          <i className="fa-solid fa-award" aria-hidden="true" />
+                          <span>Certificate {idx + 1}</span>
                         </a>
                       ))}
                     </div>
                   )}
                   {selectedTutor.idCardUrl && (
-                    <a href={selectedTutor.idCardUrl} target="_blank" rel="noopener noreferrer"
-                       className="block text-blue-600 hover:underline">
-                      🪪 View ID Card
+                    <a
+                      href={selectedTutor.idCardUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-blue-600 hover:underline flex items-center gap-2"
+                    >
+                      <i className="fa-regular fa-id-card" aria-hidden="true" />
+                      <span>View ID Card</span>
                     </a>
                   )}
                 </div>

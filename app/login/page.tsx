@@ -81,7 +81,7 @@ export default function LoginPage() {
       <div className="max-w-md w-full">
         {/* Logo/Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-maroon mb-2">Caesarea Smart School</h1>
+          <h1 className="text-4xl font-bold text-maroon mb-2">SmartLearning by Caesarea College</h1>
           <p className="text-gray-600">Sign in to your account</p>
         </div>
 

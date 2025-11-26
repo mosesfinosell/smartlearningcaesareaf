@@ -9,15 +9,23 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Caesarea Smart School Brand Colors
-        maroon: '#800020',    // Primary brand color
-        gold: '#FFD700',      // Secondary/accent color
-        cream: '#FFFDD0',     // Background color
-        // Additional shades for flexibility
-        'maroon-light': '#A0152E',
-        'maroon-dark': '#600018',
-        'gold-light': '#FFED4E',
-        'gold-dark': '#CCB000',
+        // SmartLearning by Caesarea College brand palette (from logo)
+        maroon: '#2a1f1a',    // Deep charcoal headline color
+        gold: '#b5863c',      // Signature gold accent
+        cream: '#f3ede4',     // Light background tone
+        'maroon-light': '#46352d',
+        'maroon-dark': '#1b1512',
+        'gold-light': '#c89d5a',
+        'gold-dark': '#8f6623',
+      },
+      keyframes: {
+        'slide-in-left': {
+          '0%': { opacity: '0', transform: 'translateX(-28px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+      },
+      animation: {
+        'slide-in-left': 'slide-in-left 700ms ease-out forwards',
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",

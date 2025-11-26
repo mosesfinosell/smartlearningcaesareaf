@@ -1,7 +1,7 @@
 {
   "name": "caesarea-smart-school",
   "version": "1.0.0",
-  "description": "Caesarea Smart School - Online Learning Management System",
+  "description": "SmartLearning by Caesarea College - Online Learning Management System",
   "private": true,
   "scripts": {
     "dev": "next dev",

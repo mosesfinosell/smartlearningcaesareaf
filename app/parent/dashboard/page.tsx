@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -218,25 +218,25 @@ export default function ParentDashboard() {
             title="Children"
             value={safeChildren.length}
             color="bg-maroon"
-            icon="👨‍👩‍👧‍👦"
+            icon={<i className="fa-solid fa-people-roof" aria-hidden="true" />}
           />
           <StatCard
             title="Total Classes"
             value={safeChildren.reduce((sum, c) => sum + (c.classes?.length || 0), 0)}
             color="bg-gold"
-            icon="📚"
+            icon={<i className="fa-solid fa-book-open" aria-hidden="true" />}
           />
           <StatCard
             title="Unread Messages"
             value={unreadMessages}
             color="bg-blue-600"
-            icon="✉️"
+            icon={<i className="fa-regular fa-envelope" aria-hidden="true" />}
           />
           <StatCard
             title="Total Spent"
             value={`₦${totalSpent.toLocaleString()}`}
             color="bg-green-600"
-            icon="💰"
+            icon={<i className="fa-solid fa-coins" aria-hidden="true" />}
           />
         </div>
 
@@ -247,8 +247,9 @@ export default function ParentDashboard() {
               <p className="text-sm opacity-90">Wallet Balance</p>
               <p className="text-4xl font-bold mt-1">₦{walletBalance.toLocaleString()}</p>
               {pendingPayments > 0 && (
-                <p className="text-sm mt-2 text-gold">
-                  ⚠️ {pendingPayments} pending payment{pendingPayments > 1 ? 's' : ''}
+                <p className="text-sm mt-2 text-gold flex items-center gap-2">
+                  <i className="fa-solid fa-triangle-exclamation" aria-hidden="true" />
+                  <span>{pendingPayments} pending payment{pendingPayments > 1 ? 's' : ''}</span>
                 </p>
               )}
             </div>
@@ -485,7 +486,7 @@ export default function ParentDashboard() {
   );
 }
 
-function StatCard({ title, value, color, icon }: { title: string; value: string | number; color: string; icon: string }) {
+function StatCard({ title, value, color, icon }: { title: string; value: string | number; color: string; icon: ReactNode }) {
   return (
     <div className={`${color} text-white rounded-lg p-5 shadow-lg`}>
       <div className="flex items-center justify-between">
@@ -493,7 +494,7 @@ function StatCard({ title, value, color, icon }: { title: string; value: string 
           <p className="text-sm opacity-90">{title}</p>
           <p className="text-3xl font-bold mt-2">{value}</p>
         </div>
-        <span className="text-4xl opacity-75">{icon}</span>
+        <span className="text-4xl opacity-75 [&>*]:align-middle">{icon}</span>
       </div>
     </div>
   );

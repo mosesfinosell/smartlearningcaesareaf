@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --brand-wine: #800020;
-  --brand-gold: #FFD700;
+  --brand-wine: #2a1f1a;
+  --brand-gold: #b5863c;
 }
 
 body {

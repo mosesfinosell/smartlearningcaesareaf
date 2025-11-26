@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -176,7 +176,10 @@ export default function TutorDashboard() {
   const rating = Number(profile.rating || (profile as any).rating?.overall || 0) || 0;
   const walletBalance = profile.wallet?.balance || 0;
   const walletPending = profile.wallet?.pendingEarnings || 0;
-  const verification = profile.verificationStatus === 'approved' ? '✓ Verified' : '⏳ Pending';
+  const verificationLabel = profile.verificationStatus === 'approved' ? 'Verified' : 'Pending review';
+  const verificationIcon = profile.verificationStatus === 'approved'
+    ? <i className="fa-solid fa-circle-check text-green-400" aria-hidden="true" />
+    : <i className="fa-solid fa-hourglass-half text-gold" aria-hidden="true" />;
 
   return (
     <div className="min-h-screen bg-cream">
@@ -190,7 +193,10 @@ export default function TutorDashboard() {
           <div className="flex items-center gap-6">
             <div className="text-right">
               <p className="text-sm opacity-90">Verification Status</p>
-              <p className="text-lg font-semibold">{verification}</p>
+              <p className="text-lg font-semibold flex items-center gap-2 justify-end">
+                {verificationIcon}
+                <span>{verificationLabel}</span>
+              </p>
             </div>
             <button
               onClick={handleLogout}
@@ -209,25 +215,25 @@ export default function TutorDashboard() {
             title="Total Classes"
             value={classes.length}
             color="bg-maroon"
-            icon="📚"
+            icon={<i className="fa-solid fa-book-open" aria-hidden="true" />}
           />
           <StatCard
             title="Active Students"
             value={classes.reduce((sum, c) => sum + c.students.length, 0)}
             color="bg-gold"
-            icon="👥"
+            icon={<i className="fa-solid fa-users" aria-hidden="true" />}
           />
           <StatCard
             title="Assignments"
             value={assignments.length}
             color="bg-blue-600"
-            icon="📝"
+            icon={<i className="fa-solid fa-pen-to-square" aria-hidden="true" />}
           />
           <StatCard
             title="Rating"
-            value={`${rating.toFixed(1)} ⭐`}
+            value={`${rating.toFixed(1)}`}
             color="bg-green-600"
-            icon="⭐"
+            icon={<i className="fa-solid fa-star" aria-hidden="true" />}
           />
         </div>
 
@@ -319,12 +325,14 @@ export default function TutorDashboard() {
                         </div>
 
                         <div className="space-y-2 mb-4">
-                          <p className="text-sm text-gray-700">
-                            👥 {classItem.students.length} Students
+                          <p className="text-sm text-gray-700 flex items-center gap-2">
+                            <i className="fa-solid fa-users text-gold" aria-hidden="true" />
+                            <span>{classItem.students.length} Students</span>
                           </p>
                           {classItem.schedule.map((sched, idx) => (
-                            <p key={idx} className="text-sm text-gray-700">
-                              📅 {sched.day}: {sched.startTime} - {sched.endTime}
+                            <p key={idx} className="text-sm text-gray-700 flex items-center gap-2">
+                              <i className="fa-regular fa-calendar text-gold" aria-hidden="true" />
+                              <span>{sched.day}: {sched.startTime} - {sched.endTime}</span>
                             </p>
                           ))}
                         </div>
@@ -378,9 +386,18 @@ export default function TutorDashboard() {
                               {assignment.class.subject.name}
                             </p>
                             <div className="mt-3 flex items-center gap-4 text-sm text-gray-700">
-                              <span>📝 {assignment.submissions.length} Submissions</span>
-                              <span>📊 {assignment.totalPoints} Points</span>
-                              <span>📅 Due: {new Date(assignment.dueDate).toLocaleDateString()}</span>
+                              <span className="flex items-center gap-2">
+                                <i className="fa-solid fa-pen-to-square text-gold" aria-hidden="true" />
+                                <span>{assignment.submissions.length} Submissions</span>
+                              </span>
+                              <span className="flex items-center gap-2">
+                                <i className="fa-solid fa-chart-simple text-gold" aria-hidden="true" />
+                                <span>{assignment.totalPoints} Points</span>
+                              </span>
+                              <span className="flex items-center gap-2">
+                                <i className="fa-regular fa-calendar-days text-gold" aria-hidden="true" />
+                                <span>Due: {new Date(assignment.dueDate).toLocaleDateString()}</span>
+                              </span>
                             </div>
                           </div>
                           <Link href={`/tutor/assignments/${assignment._id}`}>
@@ -413,7 +430,7 @@ export default function TutorDashboard() {
   );
 }
 
-function StatCard({ title, value, color, icon }: { title: string; value: string | number; color: string; icon: string }) {
+function StatCard({ title, value, color, icon }: { title: string; value: string | number; color: string; icon: ReactNode }) {
   return (
     <div className={`${color} text-white rounded-lg p-5 shadow-lg`}>
       <div className="flex items-center justify-between">
@@ -421,7 +438,7 @@ function StatCard({ title, value, color, icon }: { title: string; value: string 
           <p className="text-sm opacity-90">{title}</p>
           <p className="text-3xl font-bold mt-2">{value}</p>
         </div>
-        <span className="text-4xl opacity-75">{icon}</span>
+        <span className="text-4xl opacity-75 [&>*]:align-middle">{icon}</span>
       </div>
     </div>
   );

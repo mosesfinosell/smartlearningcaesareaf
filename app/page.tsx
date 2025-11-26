@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, ReactNode } from 'react';
 
 export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -9,29 +9,43 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-cream">
       {/* Navigation */}
-      <nav className="bg-maroon text-white shadow-lg">
+      <nav className="bg-white text-maroon shadow-md border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-8 py-4">
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="text-3xl font-bold text-gold">Caesarea</div>
-              <div className="text-sm">
-                <div className="font-semibold">Smart School</div>
-                <div className="text-xs text-gold">Online Learning Platform</div>
+            <div className="flex items-start gap-2">
+              <div className="text-3xl font-bold text-maroon leading-none">SmartLearning</div>
+              <div className="text-[10px] leading-3 text-black translate-y-[-6px]">
+                <div>Caesarea College</div>
               </div>
             </div>
 
             {/* Desktop Menu */}
-            <div className="hidden md:flex items-center gap-6">
-              <Link href="#features" className="hover:text-gold transition-colors">Features</Link>
-              <Link href="#how-it-works" className="hover:text-gold transition-colors">How It Works</Link>
-              <Link href="#about" className="hover:text-gold transition-colors">About</Link>
+            <div className="hidden md:flex items-center gap-4 text-black">
+              <Link
+                href="#features"
+                className="relative inline-flex items-center hover:text-maroon transition-colors pr-4 after:content-[''] after:absolute after:right-0 after:top-1/4 after:bottom-1/4 after:w-px after:bg-red-600"
+              >
+                Features
+              </Link>
+              <Link
+                href="#how-it-works"
+                className="relative inline-flex items-center hover:text-maroon transition-colors pr-4 after:content-[''] after:absolute after:right-0 after:top-1/4 after:bottom-1/4 after:w-px after:bg-red-600"
+              >
+                How It Works
+              </Link>
+              <Link
+                href="/about"
+                className="relative inline-flex items-center hover:text-maroon transition-colors pr-4 after:content-[''] after:absolute after:right-0 after:top-1/4 after:bottom-1/4 after:w-px after:bg-red-600"
+              >
+                About
+              </Link>
               <Link href="/login">
-                <button className="bg-gold text-maroon px-6 py-2 rounded-lg font-semibold hover:bg-yellow-500 transition-colors">
+                <button className="bg-white text-gold border border-gold px-6 py-2 rounded-lg font-semibold hover:bg-gold hover:text-white transition-colors">
                   Sign In
                 </button>
               </Link>
               <Link href="/register">
-                <button className="bg-white text-maroon px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                <button className="bg-white text-maroon border border-maroon px-6 py-2 rounded-lg font-semibold hover:bg-maroon hover:text-white transition-colors">
                   Get Started
                 </button>
               </Link>
@@ -40,7 +54,7 @@ export default function HomePage() {
             {/* Mobile Menu Button */}
             <button 
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden text-white"
+              className="md:hidden text-maroon"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -49,18 +63,33 @@ export default function HomePage() {
           </div>
 
           {/* Mobile Menu */}
-          {mobileMenuOpen && (
+            {mobileMenuOpen && (
             <div className="md:hidden mt-4 pb-4 space-y-3">
-              <Link href="#features" className="block hover:text-gold transition-colors">Features</Link>
-              <Link href="#how-it-works" className="block hover:text-gold transition-colors">How It Works</Link>
-              <Link href="#about" className="block hover:text-gold transition-colors">About</Link>
+              <Link
+                href="#features"
+                className="relative inline-flex items-center hover:text-maroon transition-colors text-black pr-4 after:content-[''] after:absolute after:right-0 after:top-1/4 after:bottom-1/4 after:w-px after:bg-red-600"
+              >
+                Features
+              </Link>
+              <Link
+                href="#how-it-works"
+                className="relative inline-flex items-center hover:text-maroon transition-colors text-black pr-4 after:content-[''] after:absolute after:right-0 after:top-1/4 after:bottom-1/4 after:w-px after:bg-red-600"
+              >
+                How It Works
+              </Link>
+              <Link
+                href="/about"
+                className="relative inline-flex items-center hover:text-maroon transition-colors text-black pr-4 after:content-[''] after:absolute after:right-0 after:top-1/4 after:bottom-1/4 after:w-px after:bg-red-600"
+              >
+                About
+              </Link>
               <Link href="/login" className="block">
-                <button className="w-full bg-gold text-maroon px-6 py-2 rounded-lg font-semibold hover:bg-yellow-500 transition-colors">
+                <button className="w-full bg-white text-gold border border-gold px-6 py-2 rounded-lg font-semibold hover:bg-gold hover:text-white transition-colors">
                   Sign In
                 </button>
               </Link>
               <Link href="/register" className="block">
-                <button className="w-full bg-white text-maroon px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                <button className="w-full bg-white text-maroon border border-maroon px-6 py-2 rounded-lg font-semibold hover:bg-maroon hover:text-white transition-colors">
                   Get Started
                 </button>
               </Link>
@@ -70,38 +99,37 @@ export default function HomePage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-maroon via-red-900 to-maroon text-white py-20 px-8">
+      <section className="bg-white text-maroon py-20 px-8">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-                Transform Education with
-                <span className="text-gold"> Smart Learning</span>
+              <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight animate-slide-in-left motion-reduce:animate-none">
+                Transform Education with{' '}
+                <span className="text-black">SmartLearning</span> by Caesarea College
               </h1>
-              <p className="text-xl mb-8 text-gray-200">
-                Connect students, parents, and expert tutors in one comprehensive online learning platform. 
-                Quality education, accessible anywhere, anytime.
+              <p className="text-base md:text-lg mb-8 text-gray-700">
+                Making quality education accessible through a structured model, blending hands-on school expertise with global diversity in mind.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link href="/register">
-                  <button className="bg-gold text-maroon px-8 py-4 rounded-lg text-lg font-bold hover:bg-yellow-500 transition-colors shadow-lg">
+                  <button className="bg-white text-gray-700 border-2 border-gold px-8 py-4 rounded-lg text-lg font-bold hover:bg-gold hover:text-white transition-colors shadow-lg">
                     Start Learning Today
                   </button>
                 </Link>
                 <Link href="#how-it-works">
-                  <button className="bg-white bg-opacity-20 backdrop-blur-sm text-white px-8 py-4 rounded-lg text-lg font-bold hover:bg-opacity-30 transition-colors">
+                  <button className="border-2 border-maroon text-maroon px-8 py-4 rounded-lg text-lg font-bold hover:bg-cream transition-colors">
                     Learn More →
                   </button>
                 </Link>
               </div>
             </div>
             <div className="hidden md:block">
-              <div className="bg-white bg-opacity-10 backdrop-blur-sm rounded-2xl p-8 shadow-2xl">
+              <div className="bg-cream border border-maroon-light/20 rounded-2xl p-8 shadow-lg">
                 <div className="grid grid-cols-2 gap-6">
-                  <StatBox number="500+" label="Active Students" icon="🎓" />
-                  <StatBox number="100+" label="Expert Tutors" icon="👨‍🏫" />
-                  <StatBox number="50+" label="Subjects" icon="📚" />
-                  <StatBox number="98%" label="Success Rate" icon="⭐" />
+                  <StatBox number="500+" label="Active Students" icon={<i className="fa-solid fa-user-graduate" aria-hidden="true" />} />
+                  <StatBox number="100+" label="Expert Tutors" icon={<i className="fa-solid fa-chalkboard-user" aria-hidden="true" />} />
+                  <StatBox number="50+" label="Subjects" icon={<i className="fa-solid fa-book-open" aria-hidden="true" />} />
+                  <StatBox number="98%" label="Success Rate" icon={<i className="fa-solid fa-star" aria-hidden="true" />} />
                 </div>
               </div>
             </div>
@@ -113,40 +141,48 @@ export default function HomePage() {
       <section id="features" className="py-20 px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-maroon mb-4">Why Choose Caesarea?</h2>
-            <p className="text-xl text-gray-600">Everything you need for a complete learning experience</p>
+            <h2 className="text-4xl font-bold text-maroon mb-4">Why Choose SmartLearning?</h2>
+            <p className="text-xl text-gray-600">
+              Structured systems led by an experienced educational management board with hands-on physical school expertise.
+            </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             <FeatureCard
-              icon="🎯"
-              title="Personalized Learning"
-              description="Tailored curriculum and one-on-one attention from expert tutors matched to your needs and learning style."
+              icon={<i className="fa-solid fa-shield-check" aria-hidden="true" />}
+              title="Regulated & Certified Tutors"
+              description="Every tutor is vetted, certified, and aligned to standards set by seasoned school administrators."
             />
             <FeatureCard
-              icon="💳"
-              title="Flexible Payments"
-              description="Secure wallet system with multiple payment options. Pay per class or subscribe monthly with ease."
+              icon={<i className="fa-solid fa-wallet" aria-hidden="true" />}
+              title="Operational Clarity"
+              description="Governance and policies set by seasoned school administrators, keeping processes as clear as an on-campus experience."
             />
             <FeatureCard
-              icon="📊"
-              title="Progress Tracking"
-              description="Comprehensive reports and analytics to monitor student performance, attendance, and achievements."
+              icon={<i className="fa-solid fa-chart-line" aria-hidden="true" />}
+              title="Structured Management"
+              description="Structured systems led by an experienced educational management board with hands-on physical school expertise."
+              extra={
+                <Link href="/about#board" className="inline-flex items-center gap-2 text-maroon font-semibold hover:underline">
+                  <span>View directors</span>
+                  <i className="fa-solid fa-arrow-up-right-from-square" aria-hidden="true" />
+                </Link>
+              }
             />
             <FeatureCard
-              icon="📹"
+              icon={<i className="fa-solid fa-video" aria-hidden="true" />}
               title="Live Video Classes"
-              description="Interactive online classes with screen sharing, breakout rooms, and recorded sessions for review."
+              description="Interactive classes run like a real campus—screen sharing, breakout rooms, and recordings for review."
             />
             <FeatureCard
-              icon="✍️"
+              icon={<i className="fa-solid fa-pen-to-square" aria-hidden="true" />}
               title="Smart Assignments"
-              description="Auto-graded assignments with instant feedback, detailed analytics, and progress monitoring."
+              description="Assignments built to rigorous school standards with instant feedback and clear performance analytics."
             />
             <FeatureCard
-              icon="💬"
+              icon={<i className="fa-solid fa-comments" aria-hidden="true" />}
               title="Direct Communication"
-              description="Built-in messaging system connecting parents, students, and tutors for seamless collaboration."
+              description="Built-in communication that keeps parents, students, tutors, and administrators aligned."
             />
           </div>
         </div>
@@ -190,7 +226,7 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-8">
             <UserTypeCard
-              icon="🎓"
+              icon={<i className="fa-solid fa-user-graduate" aria-hidden="true" />}
               title="For Students"
               benefits={[
                 'Access to expert tutors',
@@ -203,7 +239,7 @@ export default function HomePage() {
               link="/register"
             />
             <UserTypeCard
-              icon="👨‍👩‍👧"
+              icon={<i className="fa-solid fa-people-roof" aria-hidden="true" />}
               title="For Parents"
               benefits={[
                 'Monitor child progress',
@@ -216,7 +252,7 @@ export default function HomePage() {
               link="/register"
             />
             <UserTypeCard
-              icon="👨‍🏫"
+              icon={<i className="fa-solid fa-chalkboard-user" aria-hidden="true" />}
               title="For Tutors"
               benefits={[
                 'Reach more students',
@@ -239,7 +275,7 @@ export default function HomePage() {
             Ready to Transform Your Learning Experience?
           </h2>
           <p className="text-xl mb-8 text-gray-200">
-            Join thousands of students, parents, and tutors already using Caesarea Smart School
+            Join thousands of students, parents, and tutors already using SmartLearning by Caesarea College
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/register">
@@ -261,7 +297,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
-              <h3 className="text-xl font-bold text-gold mb-4">Caesarea Smart School</h3>
+              <h3 className="text-xl font-bold text-black mb-4">SmartLearning by Caesarea College</h3>
               <p className="text-gray-400">
                 Transforming education through innovative online learning solutions.
               </p>
@@ -269,29 +305,29 @@ export default function HomePage() {
             <div>
               <h4 className="font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><Link href="#features" className="hover:text-gold">Features</Link></li>
-                <li><Link href="#how-it-works" className="hover:text-gold">How It Works</Link></li>
-                <li><Link href="/register" className="hover:text-gold">Get Started</Link></li>
+                <li><Link href="#features" className="hover:text-maroon">Features</Link></li>
+                <li><Link href="#how-it-works" className="hover:text-maroon">How It Works</Link></li>
+                <li><Link href="/register" className="hover:text-maroon">Get Started</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold mb-4">Support</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><Link href="#" className="hover:text-gold">Help Center</Link></li>
-                <li><Link href="#" className="hover:text-gold">Contact Us</Link></li>
-                <li><Link href="#" className="hover:text-gold">FAQs</Link></li>
+                <li><Link href="#" className="hover:text-maroon">Help Center</Link></li>
+                <li><Link href="#" className="hover:text-maroon">Contact Us</Link></li>
+                <li><Link href="#" className="hover:text-maroon">FAQs</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold mb-4">Legal</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><Link href="#" className="hover:text-gold">Privacy Policy</Link></li>
-                <li><Link href="#" className="hover:text-gold">Terms of Service</Link></li>
+                <li><Link href="#" className="hover:text-maroon">Privacy Policy</Link></li>
+                <li><Link href="#" className="hover:text-maroon">Terms of Service</Link></li>
               </ul>
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 Caesarea Smart School. All rights reserved.</p>
+            <p>&copy; 2024 SmartLearning by Caesarea College. All rights reserved.</p>
           </div>
         </div>
       </footer>
@@ -299,22 +335,23 @@ export default function HomePage() {
   );
 }
 
-function StatBox({ number, label, icon }: { number: string; label: string; icon: string }) {
+function StatBox({ number, label, icon }: { number: string; label: string; icon: ReactNode }) {
   return (
     <div className="text-center">
-      <div className="text-3xl mb-2">{icon}</div>
-      <div className="text-3xl font-bold mb-1">{number}</div>
-      <div className="text-sm text-gray-300">{label}</div>
+      <div className="text-3xl mb-2 text-gray-600 [&>*]:align-middle">{icon}</div>
+      <div className="text-3xl font-bold mb-1 text-gray-700">{number}</div>
+      <div className="text-sm text-gray-500">{label}</div>
     </div>
   );
 }
 
-function FeatureCard({ icon, title, description }: { icon: string; title: string; description: string }) {
+function FeatureCard({ icon, title, description, extra }: { icon: ReactNode; title: string; description: string; extra?: ReactNode }) {
   return (
     <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow border border-gray-100">
-      <div className="text-5xl mb-4">{icon}</div>
+      <div className="text-5xl mb-4 text-black [&>*]:align-middle">{icon}</div>
       <h3 className="text-xl font-bold text-maroon mb-3">{title}</h3>
       <p className="text-gray-600">{description}</p>
+      {extra && <div className="mt-4">{extra}</div>}
     </div>
   );
 }
@@ -331,15 +368,17 @@ function StepCard({ number, title, description }: { number: string; title: strin
   );
 }
 
-function UserTypeCard({ icon, title, benefits, cta, link }: { icon: string; title: string; benefits: string[]; cta: string; link: string }) {
+function UserTypeCard({ icon, title, benefits, cta, link }: { icon: ReactNode; title: string; benefits: string[]; cta: string; link: string }) {
   return (
     <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow border-2 border-gold">
-      <div className="text-6xl mb-4 text-center">{icon}</div>
+      <div className="text-6xl mb-4 text-center text-black [&>*]:align-middle">{icon}</div>
       <h3 className="text-2xl font-bold text-maroon mb-6 text-center">{title}</h3>
       <ul className="space-y-3 mb-8">
         {benefits.map((benefit, idx) => (
           <li key={idx} className="flex items-start gap-2">
-            <span className="text-green-600 mt-1">✓</span>
+            <span className="text-green-600 mt-1">
+              <i className="fa-solid fa-check" aria-hidden="true" />
+            </span>
             <span className="text-gray-700">{benefit}</span>
           </li>
         ))}
