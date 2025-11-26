@@ -5,6 +5,7 @@ import { useState, ReactNode } from 'react';
 
 export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const calendarLink = process.env.NEXT_PUBLIC_CALENDAR_LINK || process.env.CALENDAR_LINK || '#';
 
   return (
     <div className="min-h-screen bg-cream">
@@ -22,16 +23,16 @@ export default function HomePage() {
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center gap-4 text-black">
               <Link
-                href="#features"
+                href="/about#board"
                 className="relative inline-flex items-center hover:text-maroon transition-colors pr-4 after:content-[''] after:absolute after:right-0 after:top-1/4 after:bottom-1/4 after:w-px after:bg-red-600"
               >
-                Features
+                Board of Governance
               </Link>
               <Link
-                href="#how-it-works"
+                href="/featured-courses"
                 className="relative inline-flex items-center hover:text-maroon transition-colors pr-4 after:content-[''] after:absolute after:right-0 after:top-1/4 after:bottom-1/4 after:w-px after:bg-red-600"
               >
-                How It Works
+                Featured Courses
               </Link>
               <Link
                 href="/about"
@@ -39,16 +40,14 @@ export default function HomePage() {
               >
                 About
               </Link>
-              <Link href="/login">
-                <button className="bg-white text-gold border border-gold px-6 py-2 rounded-lg font-semibold hover:bg-gold hover:text-white transition-colors">
-                  Sign In
-                </button>
-              </Link>
-              <Link href="/register">
-                <button className="bg-white text-maroon border border-maroon px-6 py-2 rounded-lg font-semibold hover:bg-maroon hover:text-white transition-colors">
-                  Get Started
-                </button>
-              </Link>
+              <a
+                href={calendarLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-white text-maroon border border-maroon px-6 py-2 rounded-lg font-semibold hover:bg-maroon hover:text-white transition-colors"
+              >
+                Book a Call
+              </a>
             </div>
 
             {/* Mobile Menu Button */}
@@ -66,16 +65,16 @@ export default function HomePage() {
             {mobileMenuOpen && (
             <div className="md:hidden mt-4 pb-4 space-y-3">
               <Link
-                href="#features"
+                href="/about#board"
                 className="relative inline-flex items-center hover:text-maroon transition-colors text-black pr-4 after:content-[''] after:absolute after:right-0 after:top-1/4 after:bottom-1/4 after:w-px after:bg-red-600"
               >
-                Features
+                Board of Governance
               </Link>
               <Link
-                href="#how-it-works"
+                href="/featured-courses"
                 className="relative inline-flex items-center hover:text-maroon transition-colors text-black pr-4 after:content-[''] after:absolute after:right-0 after:top-1/4 after:bottom-1/4 after:w-px after:bg-red-600"
               >
-                How It Works
+                Featured Courses
               </Link>
               <Link
                 href="/about"
@@ -83,16 +82,14 @@ export default function HomePage() {
               >
                 About
               </Link>
-              <Link href="/login" className="block">
-                <button className="w-full bg-white text-gold border border-gold px-6 py-2 rounded-lg font-semibold hover:bg-gold hover:text-white transition-colors">
-                  Sign In
-                </button>
-              </Link>
-              <Link href="/register" className="block">
-                <button className="w-full bg-white text-maroon border border-maroon px-6 py-2 rounded-lg font-semibold hover:bg-maroon hover:text-white transition-colors">
-                  Get Started
-                </button>
-              </Link>
+              <a
+                href={calendarLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full bg-white text-maroon border border-maroon px-6 py-2 rounded-lg font-semibold hover:bg-maroon hover:text-white transition-colors text-center"
+              >
+                Book a Call
+              </a>
             </div>
           )}
         </div>
@@ -116,9 +113,9 @@ export default function HomePage() {
                     Start Learning Today
                   </button>
                 </Link>
-                <Link href="#how-it-works">
+                <Link href="/featured-courses">
                   <button className="border-2 border-maroon text-maroon px-8 py-4 rounded-lg text-lg font-bold hover:bg-cream transition-colors">
-                    Learn More →
+                    Featured Courses →
                   </button>
                 </Link>
               </div>
@@ -176,24 +173,24 @@ export default function HomePage() {
             />
             <FeatureCard
               icon={<i className="fa-solid fa-pen-to-square" aria-hidden="true" />}
-              title="Smart Assignments"
-              description="Assignments built to rigorous school standards with instant feedback and clear performance analytics."
+              title="Global Diversity in Education"
+              description="Structured learning experiences designed for diverse cultures, time zones, and learning needs—while keeping rigorous standards."
             />
             <FeatureCard
               icon={<i className="fa-solid fa-comments" aria-hidden="true" />}
               title="Direct Communication"
-              description="Built-in communication that keeps parents, students, tutors, and administrators aligned."
+              description="Built-in communication that keeps parents, students, tutors, and administrators aligned, with direct channels to share feedback and decisions with the management team."
             />
           </div>
         </div>
       </section>
 
       {/* How It Works Section */}
-      <section id="how-it-works" className="bg-white py-20 px-8">
+      <section id="featured-courses" className="bg-white py-20 px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-maroon mb-4">How It Works</h2>
-            <p className="text-xl text-gray-600">Get started in three simple steps</p>
+            <h2 className="text-4xl font-bold text-maroon mb-4">Featured Courses</h2>
+            <p className="text-xl text-gray-600">Explore our top programs designed for diverse learners</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-12">
@@ -306,7 +303,7 @@ export default function HomePage() {
               <h4 className="font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2 text-gray-400">
                 <li><Link href="#features" className="hover:text-maroon">Features</Link></li>
-                <li><Link href="#how-it-works" className="hover:text-maroon">How It Works</Link></li>
+                <li><Link href="/featured-courses" className="hover:text-maroon">Featured Courses</Link></li>
                 <li><Link href="/register" className="hover:text-maroon">Get Started</Link></li>
               </ul>
             </div>
