@@ -21,6 +21,17 @@ const fallbackImage = '/images/smartlearninglogo.jpeg';
 const fallbackDate = new Date().toISOString();
 const apiBase = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
 
+async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 5000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 const seedArticles: Article[] = [
   {
     slug: 'online-learning-blueprint',
@@ -224,7 +235,7 @@ export async function fetchArticles(): Promise<Article[]> {
   if (!apiBase) return seedArticles;
 
   try {
-    const response = await fetch(`${apiBase}/blog-posts`, {
+    const response = await fetchWithTimeout(`${apiBase}/blog-posts`, {
       next: { revalidate: 120 }
     });
 
