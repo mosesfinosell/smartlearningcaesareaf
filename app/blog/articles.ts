@@ -231,9 +231,9 @@ export async function fetchArticles(): Promise<Article[]> {
     if (!response.ok) throw new Error('Failed to fetch articles');
 
     const payload = await response.json();
-    const items = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+    const items: unknown[] = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
     const normalized = items
-      .map((item) => normalizeArticle(item))
+      .map((item: unknown) => normalizeArticle(item))
       .filter((item): item is Article => Boolean(item));
 
     return normalized.length ? normalized : seedArticles;
