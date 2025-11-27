@@ -515,7 +515,7 @@ export default function StudentDashboard() {
                               {report.class.subject.name}
                             </h3>
                             <p className="text-sm text-gray-600 mt-1">
-                              {new Date(report.createdAt).toLocaleDateString()}
+                              {report.createdAt ? new Date(report.createdAt).toLocaleDateString() : 'Date unavailable'}
                             </p>
                           </div>
                           <span className="px-4 py-2 bg-green-100 text-green-800 rounded-lg font-bold text-xl">
