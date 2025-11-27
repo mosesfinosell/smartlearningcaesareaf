@@ -172,8 +172,8 @@ export default function EnrollClassPage({ params }: { params: { id: string } }) 
     );
   }
 
-  const childFirst = child.userId?.profile?.firstName || child.userId?.firstName || 'Child';
-  const childLast = child.userId?.profile?.lastName || child.userId?.lastName || '';
+  const childFirst = child.userId?.firstName || 'Child';
+  const childLast = child.userId?.lastName || '';
 
   return (
     <div className="min-h-screen bg-cream">
