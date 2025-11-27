@@ -83,7 +83,7 @@ export default function RegisterPage() {
 
       // Store token and redirect
       localStorage.setItem('token', token);
-      localStorage.setItem('userRole', role);
+      localStorage.setItem('userRole', role || '');
       localStorage.setItem('userId', userId);
 
       alert('Registration successful!');
