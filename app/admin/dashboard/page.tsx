@@ -55,6 +55,13 @@ export default function AdminDashboard() {
     fetchDashboardData();
   }, []);
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userId');
+    router.push('/login');
+  };
+
   const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -68,14 +75,15 @@ export default function AdminDashboard() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const statsData = await statsRes.json();
-      setStats(statsData);
+      setStats(statsData?.data || statsData);
 
       // Fetch pending tutors
       const tutorsRes = await fetch(`${apiBase}/tutors?verificationStatus=pending`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const tutorsData = await tutorsRes.json();
-      setPendingTutors(tutorsData);
+      const tutorList = Array.isArray(tutorsData?.data) ? tutorsData.data : Array.isArray(tutorsData) ? tutorsData : [];
+      setPendingTutors(tutorList);
 
       setLoading(false);
     } catch (error) {
@@ -143,8 +151,19 @@ export default function AdminDashboard() {
       {/* Header */}
       <header className="bg-maroon text-white py-6 px-8 shadow-lg">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold">SmartLearning by Caesarea College - Admin Dashboard</h1>
-          <p className="text-gold mt-2">Manage tutors, students, and system operations</p>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <h1 className="text-3xl font-bold">SmartLearning by Caesarea College - Admin Dashboard</h1>
+              <p className="text-gold mt-2">Manage tutors, students, and system operations</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center gap-2 bg-white text-maroon px-4 py-2 rounded-lg font-semibold hover:bg-gold hover:text-white transition-colors"
+            >
+              <i className="fa-solid fa-right-from-bracket" aria-hidden="true" />
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
@@ -178,7 +197,7 @@ export default function AdminDashboard() {
           />
           <StatCard 
             title="Revenue (₦)" 
-            value={stats.totalRevenue.toLocaleString()} 
+            value={stats.totalRevenue ? stats.totalRevenue.toLocaleString() : '0'} 
             color="bg-green-700"
           />
         </div>
@@ -206,12 +225,14 @@ export default function AdminDashboard() {
                       </h3>
                       <p className="text-gray-600">{tutor.userId.email}</p>
                       <p className="text-gray-600">{tutor.userId.phoneNumber}</p>
-                      <div className="mt-2">
-                        <span className="text-sm text-gray-500">Subjects: </span>
-                        <span className="text-sm text-gray-700">
-                          {tutor.subjects.map(s => `${s.name} (${s.level})`).join(', ')}
-                        </span>
-                      </div>
+                      {Array.isArray(tutor.subjects) && tutor.subjects.length > 0 && (
+                        <div className="mt-2">
+                          <span className="text-sm text-gray-500">Subjects: </span>
+                          <span className="text-sm text-gray-700">
+                            {tutor.subjects.map((s) => `${s.name} (${s.level})`).join(', ')}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <div className="text-right">
                       <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
@@ -268,13 +289,17 @@ export default function AdminDashboard() {
               {/* Subjects */}
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-maroon mb-3">Subjects & Levels</h3>
-                <div className="flex flex-wrap gap-2">
-                  {selectedTutor.subjects.map((subject, idx) => (
-                    <span key={idx} className="bg-gold text-white px-3 py-1 rounded-full text-sm">
-                      {subject.name} - {subject.level}
-                    </span>
-                  ))}
-                </div>
+                {Array.isArray(selectedTutor.subjects) && selectedTutor.subjects.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedTutor.subjects.map((subject, idx) => (
+                      <span key={idx} className="bg-gold text-white px-3 py-1 rounded-full text-sm">
+                        {subject.name} - {subject.level}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600">No subjects listed</p>
+                )}
               </div>
 
               {/* Qualifications */}
