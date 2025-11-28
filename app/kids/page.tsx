@@ -31,6 +31,12 @@ export default function KidsPage() {
       icon: 'fa-book-open-reader',
     },
     {
+      title: 'Cultural Voyage',
+      description:
+        'Virtual adventures to museums, heritage sites, and cultural landmarks worldwide—guided by tutors who make history and geography come alive.',
+      icon: 'fa-landmark',
+    },
+    {
       title: 'Better grades & confidence',
       description:
         'Track progress with clear milestones, practice plans, and regular feedback to keep your child motivated and improving.',
@@ -48,6 +54,32 @@ export default function KidsPage() {
 
   return (
     <main className="bg-cream min-h-screen text-gray-900">
+      <nav className="bg-white text-maroon shadow-md border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center">
+          <Link href="/" className="flex items-start gap-2">
+            <div className="text-3xl font-bold leading-none">SmartLearning</div>
+            <div className="text-[10px] leading-3 text-black translate-y-[-6px]">
+              <div>CC</div>
+            </div>
+          </Link>
+          <div className="hidden md:flex items-center gap-4 text-black">
+            <Link href="/featured-courses" className="hover:text-maroon transition-colors">
+              Featured Courses
+            </Link>
+            <Link href="/blog" className="hover:text-maroon transition-colors">
+              Blog
+            </Link>
+            <Link href="/register" className="bg-maroon text-white px-4 py-2 rounded-lg font-semibold hover:bg-black transition-colors">
+              Get Started
+            </Link>
+            <Link href="/" className="text-maroon font-semibold hover:underline inline-flex items-center gap-1">
+              <span aria-hidden="true">←</span>
+              <span>Back home</span>
+            </Link>
+          </div>
+        </div>
+      </nav>
+
       <section className="bg-gradient-to-br from-maroon to-black text-white py-20 px-6">
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center">
           <div className="space-y-4">

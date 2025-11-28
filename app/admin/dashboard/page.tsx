@@ -35,6 +35,13 @@ interface Stats {
   totalRevenue: number;
 }
 
+interface PageView {
+  _id: string;
+  path: string;
+  count: number;
+  lastVisited: string;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const apiBase = process.env.NEXT_PUBLIC_API_URL;
@@ -50,6 +57,7 @@ export default function AdminDashboard() {
   const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [topPages, setTopPages] = useState<PageView[]>([]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -84,6 +92,13 @@ export default function AdminDashboard() {
       const tutorsData = await tutorsRes.json();
       const tutorList = Array.isArray(tutorsData?.data) ? tutorsData.data : Array.isArray(tutorsData) ? tutorsData : [];
       setPendingTutors(tutorList);
+
+      const analyticsRes = await fetch(`${apiBase}/analytics/top?limit=5`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const analyticsData = await analyticsRes.json();
+      const pageList = Array.isArray(analyticsData?.data) ? analyticsData.data : [];
+      setTopPages(pageList);
 
       setLoading(false);
     } catch (error) {
@@ -407,6 +422,30 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* Top Pages */}
+      <div className="max-w-7xl mx-auto px-8 pb-10">
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-2xl font-bold text-maroon mb-4">Top Visited Pages</h2>
+          {topPages.length === 0 ? (
+            <p className="text-gray-500">No analytics data yet.</p>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-4">
+              {topPages.map((page) => (
+                <div key={page._id} className="border border-gray-200 rounded-lg p-4 flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-gray-800">{page.path}</p>
+                    <p className="text-xs text-gray-500">
+                      Last visited: {page.lastVisited ? new Date(page.lastVisited).toLocaleString() : 'N/A'}
+                    </p>
+                  </div>
+                  <span className="text-lg font-bold text-maroon">{page.count}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

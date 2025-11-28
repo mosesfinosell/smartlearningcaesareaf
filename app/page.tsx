@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FocusEvent, ReactNode, useEffect, useRef, useState } from 'react';
+import { FocusEvent, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 const featuredCategories = [
   {
@@ -31,7 +31,7 @@ const featuredCategories = [
   },
   {
     title: 'Kids',
-    items: ['Global Tutors', 'Phonetics & Diction', 'Homework Help', 'Boost School Performance'],
+    items: ['Global Tutors', 'Phonetics & Diction', 'Homework Help', 'Boost School Performance', 'Virtual Voyage'],
   },
 ];
 
@@ -48,6 +48,17 @@ export default function HomePage() {
     linkedin: process.env.NEXT_PUBLIC_SOCIAL_LINKEDIN || '#',
     youtube: process.env.NEXT_PUBLIC_SOCIAL_YOUTUBE || '#',
   };
+  const [featuredSearch, setFeaturedSearch] = useState('');
+  const resolveFeaturedLink = (categoryTitle: string, item: string) => {
+    const term = item.toLowerCase();
+    if (term.includes('ielts')) return '/ielts';
+    if (term.includes('gmat')) return '/gmat';
+    if (term.includes('study abroad')) return '/study-abroad';
+    if (categoryTitle.toLowerCase().includes('language')) return '/languages';
+    if (categoryTitle.toLowerCase().includes('music')) return '/music';
+    if (term.includes('voyage')) return '/kids/voyage';
+    return categoryTitle === 'Kids' ? '/kids' : '/featured-courses';
+  };
 
   const handleFeaturedBlur = (event: FocusEvent<HTMLDivElement>) => {
     const next = event.relatedTarget as Node | null;
@@ -55,6 +66,17 @@ export default function HomePage() {
       setFeaturedOpen(false);
     }
   };
+
+  const filteredCategories = useMemo(() => {
+    const term = featuredSearch.trim().toLowerCase();
+    if (!term) return featuredCategories;
+    return featuredCategories
+      .map((category) => ({
+        ...category,
+        items: category.items.filter((item) => item.toLowerCase().includes(term))
+      }))
+      .filter((category) => category.title.toLowerCase().includes(term) || category.items.length > 0);
+  }, [featuredSearch]);
 
   return (
     <div className="min-h-screen bg-cream">
@@ -65,7 +87,7 @@ export default function HomePage() {
             <div className="flex items-start gap-2">
               <div className="text-3xl font-bold text-maroon leading-none">SmartLearning</div>
               <div className="text-[10px] leading-3 text-black translate-y-[-6px]">
-                <div>Caesarea College</div>
+                <div>CC</div>
               </div>
             </div>
 
@@ -106,29 +128,34 @@ export default function HomePage() {
                       <i className="fa-solid fa-magnifying-glass text-gray-400" aria-hidden="true" />
                       <input
                         type="text"
-                        readOnly
+                        value={featuredSearch}
+                        onChange={(e) => setFeaturedSearch(e.target.value)}
                         placeholder="What do you want to learn?"
-                        className="w-full bg-transparent text-gray-700 placeholder:text-gray-400 focus:outline-none cursor-default"
+                        className="w-full bg-transparent text-gray-700 placeholder:text-gray-400 focus:outline-none"
                       />
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                      {featuredCategories.map((category) => (
-                        <div key={category.title} className="space-y-3">
-                          <h4 className="font-semibold text-gray-800">{category.title}</h4>
-                          <ul className="space-y-2 text-gray-600 text-sm">
-                            {category.items.map((item) => (
-                              <li key={item}>
-                                <Link
-                                  href={category.title === 'Kids' ? '/kids' : '/featured-courses'}
-                                  className="hover:text-maroon transition-colors inline-flex"
-                                >
-                                  {item}
-                                </Link>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ))}
+                      {filteredCategories.length === 0 ? (
+                        <p className="text-gray-500 text-sm col-span-full">No matches found.</p>
+                      ) : (
+                        filteredCategories.map((category) => (
+                          <div key={category.title} className="space-y-3">
+                            <h4 className="font-semibold text-gray-800">{category.title}</h4>
+                            <ul className="space-y-2 text-gray-600 text-sm">
+                              {category.items.map((item) => (
+                                <li key={item}>
+                                  <Link
+                                    href={resolveFeaturedLink(category.title, item)}
+                                    className="hover:text-maroon transition-colors inline-flex"
+                                  >
+                                    {item}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
@@ -181,12 +208,6 @@ export default function HomePage() {
               >
                 About
               </Link>
-              <Link
-                href="/kids"
-                className="relative inline-flex items-center hover:text-maroon transition-colors text-black pr-4 after:content-[''] after:absolute after:right-0 after:top-1/4 after:bottom-1/4 after:w-px after:bg-red-600"
-              >
-                Kids
-              </Link>
               <a
                 href={calendarLink}
                 target="_blank"
@@ -199,6 +220,39 @@ export default function HomePage() {
           )}
         </div>
       </nav>
+
+      {/* Floating Contact Sidebar */}
+      <div className="fixed right-3 bottom-3 md:bottom-8 z-40 space-y-2">
+        <Link
+          href={whatsappLink}
+          target="_blank"
+          rel="noopener"
+          className="group flex items-center gap-2 bg-green-600 text-white px-2.5 py-2.5 rounded-full shadow-lg hover:bg-green-700 transition-all duration-200"
+        >
+          <i className="fa-brands fa-whatsapp" aria-hidden="true" />
+          <span className="text-sm font-semibold max-w-0 overflow-hidden group-hover:max-w-xs group-hover:pl-1 transition-all duration-200 whitespace-nowrap">
+            WhatsApp a representative
+          </span>
+        </Link>
+        <a
+          href={`tel:${callNumber}`}
+          className="group flex items-center gap-2 bg-white text-maroon px-2.5 py-2.5 rounded-full shadow-lg border border-maroon hover:bg-cream transition-all duration-200"
+        >
+          <i className="fa-solid fa-phone" aria-hidden="true" />
+          <span className="text-sm font-semibold max-w-0 overflow-hidden group-hover:max-w-xs group-hover:pl-1 transition-all duration-200 whitespace-nowrap">
+            Call us
+          </span>
+        </a>
+        <a
+          href={`mailto:${emailAddress}`}
+          className="group flex items-center gap-2 bg-white text-maroon px-2.5 py-2.5 rounded-full shadow-lg border border-maroon hover:bg-cream transition-all duration-200"
+        >
+          <i className="fa-solid fa-envelope" aria-hidden="true" />
+          <span className="text-sm font-semibold max-w-0 overflow-hidden group-hover:max-w-xs group-hover:pl-1 transition-all duration-200 whitespace-nowrap">
+            Email us
+          </span>
+        </a>
+      </div>
 
       {/* Hero Section */}
       <section className="bg-white text-maroon py-20 px-8">
@@ -233,6 +287,158 @@ export default function HomePage() {
                   <StatBox number="50+" label="Subjects" icon={<i className="fa-solid fa-book-open" aria-hidden="true" />} />
                   <StatBox number="98%" label="Success Rate" icon={<i className="fa-solid fa-star" aria-hidden="true" />} />
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Language Learning Section */}
+      <section className="py-16 px-8 bg-gradient-to-r from-maroon via-black to-maroon text-white">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center">
+          <div className="space-y-4">
+            <p className="uppercase tracking-[0.2em] text-gold text-sm font-semibold">Language Learning</p>
+            <h2 className="text-4xl md:text-5xl font-bold">Master Languages for Global Opportunities</h2>
+            <p className="text-lg text-gray-100">
+              Speak clearly, confidently, and professionally with expert-led programs across English, French, Chinese, German, Yoruba,
+              Hausa, Igbo, and more. Whether you need Corporate English, Academic support, or everyday conversation, we build a
+              structured, personalized journey.
+            </p>
+            <ul className="grid sm:grid-cols-2 gap-3 text-gray-100 text-sm">
+              {[
+                'Live 1-on-1 classes',
+                'Global-standard tutors',
+                'Custom learning pathways',
+                'For kids, teens, adults, and professionals',
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <span className="text-gold mt-1">
+                    <i className="fa-solid fa-check-circle" aria-hidden="true" />
+                  </span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-lg text-gray-100">Start your language journey today.</p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link
+                href="/languages"
+                className="inline-flex items-center gap-2 bg-gold text-maroon px-6 py-3 rounded-lg font-semibold hover:bg-yellow-400 transition-colors"
+              >
+                Explore language programs
+                <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+              </Link>
+              <Link
+                href={calendarLink}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex items-center gap-2 border border-white/40 px-6 py-3 rounded-lg font-semibold text-white hover:bg-white/10 transition-colors"
+              >
+                Book a call
+                <i className="fa-solid fa-calendar-check" aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+          <div className="bg-white text-gray-900 rounded-2xl p-8 shadow-xl border border-white/20 space-y-4">
+            <h3 className="text-2xl font-bold text-maroon">Who it’s for</h3>
+            <p className="text-gray-700">
+              Learners aiming to improve languages for school, work, business, travel, and global opportunities—across all ages and levels.
+            </p>
+            <div className="grid sm:grid-cols-2 gap-3 text-sm text-gray-800">
+              {['Corporate English', 'Academic English', 'Conversation', 'Travel', 'Exam prep', 'Accent training'].map((item) => (
+                <div key={item} className="bg-gray-100 border border-gray-200 rounded-lg px-3 py-2">
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Study Abroad Section */}
+      <section id="featured-courses" className="bg-gradient-to-br from-cream via-white to-cream py-20 px-8">
+        <div className="max-w-7xl mx-auto space-y-12">
+          <div className="flex flex-col gap-4 max-w-4xl">
+            <p className="text-sm font-semibold text-gold uppercase tracking-[0.18em]">Admissions & Travels</p>
+            <h2 className="text-4xl md:text-5xl font-bold text-maroon leading-tight">
+              Study abroad. Simplified.
+            </h2>
+            <p className="text-xl text-gray-700">
+              From courses to countries, find what you need in a moment.
+            </p>
+            <p className="text-base md:text-lg text-gray-700">
+              We prepare students for IGCSE and Cambridge exams, then guide applications through our partner network with
+              access to 750+ institutions worldwide.
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-gradient-to-r from-maroon-dark to-maroon rounded-3xl p-10 shadow-xl text-white relative overflow-hidden">
+              <div className="absolute -right-16 -bottom-16 w-72 h-72 bg-gold opacity-20 rounded-full blur-3xl" />
+              <div className="absolute -left-10 -top-10 w-64 h-64 bg-gold opacity-10 rounded-full blur-3xl" />
+              <div className="relative space-y-6">
+                <h3 className="text-3xl md:text-4xl font-bold leading-tight">
+                  Apply to universities and colleges across the US, UK, Canada, and Australia.
+                </h3>
+                <p className="text-lg text-gold-light">
+                  Get expert help to study abroad with ease—from course selection to visa processing.
+                </p>
+                <ul className="space-y-3">
+                  <li className="flex items-start gap-3">
+                    <span className="mt-1 text-gold"><i className="fa-solid fa-check-circle" aria-hidden="true" /></span>
+                    <span className="text-gray-100">98% admission success rate</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="mt-1 text-gold"><i className="fa-solid fa-check-circle" aria-hidden="true" /></span>
+                    <span className="text-gray-100">Tuition scholarships starting from 40%</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="mt-1 text-gold"><i className="fa-solid fa-check-circle" aria-hidden="true" /></span>
+                    <span className="text-gray-100">Hassle-free student visa processing</span>
+                  </li>
+                </ul>
+                <div className="flex flex-wrap gap-4 pt-2">
+                  <Link
+                    href="/study-abroad"
+                    className="inline-flex items-center gap-2 bg-gold text-maroon font-semibold px-6 py-3 rounded-lg shadow-md hover:bg-gold-light transition-colors"
+                  >
+                    Explore pathways
+                    <i className="fa-solid fa-arrow-right" aria-hidden="true" />
+                  </Link>
+                  <Link
+                    href={calendarLink}
+                    target="_blank"
+                    rel="noopener"
+                    className="inline-flex items-center gap-2 border border-gold text-white font-semibold px-6 py-3 rounded-lg hover:bg-white hover:text-maroon transition-colors"
+                  >
+                    Get started
+                    <i className="fa-solid fa-paper-plane" aria-hidden="true" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-lg space-y-6">
+              <div>
+                <p className="text-sm uppercase tracking-[0.2em] text-gray-500">Meet</p>
+                <h4 className="text-3xl font-bold text-maroon">
+                  <CountUp value={750} suffix="+" />
+                </h4>
+                <p className="text-gray-600">Institutions around the world</p>
+              </div>
+              <div className="border-t border-gray-100 pt-6">
+                <p className="text-sm uppercase tracking-[0.2em] text-gray-500">Courses</p>
+                <h4 className="text-3xl font-bold text-maroon">
+                  <CountUp value={42245} />
+                </h4>
+                <p className="text-gray-600">Programs to match your goals</p>
+              </div>
+              <div className="border-t border-gray-100 pt-6">
+                <p className="text-sm uppercase tracking-[0.2em] text-gray-500">Universities</p>
+                <h4 className="text-3xl font-bold text-maroon">
+                  <CountUp value={365} />
+                </h4>
+                <p className="text-gray-600">Top destinations we place students into</p>
               </div>
             </div>
           </div>
@@ -290,155 +496,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Study Abroad Section */}
-      <section id="featured-courses" className="bg-gradient-to-br from-cream via-white to-cream py-20 px-8">
-        <div className="max-w-7xl mx-auto space-y-12">
-          <div className="flex flex-col gap-4 max-w-4xl">
-            <p className="text-sm font-semibold text-gold uppercase tracking-[0.18em]">Admissions & Travels</p>
-            <h2 className="text-4xl md:text-5xl font-bold text-maroon leading-tight">
-              Study abroad. Simplified.
-            </h2>
-            <p className="text-xl text-gray-700">
-              From courses to countries, find what you need in a moment.
-            </p>
-            <p className="text-base md:text-lg text-gray-700">
-              We prepare students for IGCSE and Cambridge exams, then guide applications through our partner network with
-              access to 750+ institutions worldwide.
-            </p>
-          </div>
-
-          <div className="grid lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-gradient-to-r from-maroon-dark to-maroon rounded-3xl p-10 shadow-xl text-white relative overflow-hidden">
-              <div className="absolute -right-16 -bottom-16 w-72 h-72 bg-gold opacity-20 rounded-full blur-3xl" />
-              <div className="absolute -left-10 -top-10 w-64 h-64 bg-gold opacity-10 rounded-full blur-3xl" />
-              <div className="relative space-y-6">
-                <h3 className="text-3xl md:text-4xl font-bold leading-tight">
-                  Apply to universities and colleges across the US, UK, Canada, and Australia.
-                </h3>
-                <p className="text-lg text-gold-light">
-                  Get expert help to study abroad with ease—from course selection to visa processing.
-                </p>
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-3">
-                    <span className="mt-1 text-gold"><i className="fa-solid fa-check-circle" aria-hidden="true" /></span>
-                    <span className="text-gray-100">98% admission success rate</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="mt-1 text-gold"><i className="fa-solid fa-check-circle" aria-hidden="true" /></span>
-                    <span className="text-gray-100">Tuition scholarships starting from 40%</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="mt-1 text-gold"><i className="fa-solid fa-check-circle" aria-hidden="true" /></span>
-                    <span className="text-gray-100">Hassle-free student visa processing</span>
-                  </li>
-                </ul>
-                <div className="flex flex-wrap gap-4 pt-2">
-                  <Link
-                    href="/featured-courses"
-                    className="inline-flex items-center gap-2 bg-gold text-maroon font-semibold px-6 py-3 rounded-lg shadow-md hover:bg-gold-light transition-colors"
-                  >
-                    Explore pathways
-                    <i className="fa-solid fa-arrow-right" aria-hidden="true" />
-                  </Link>
-                  <Link
-                    href={calendarLink}
-                    target="_blank"
-                    rel="noopener"
-                    className="inline-flex items-center gap-2 border border-gold text-white font-semibold px-6 py-3 rounded-lg hover:bg-white hover:text-maroon transition-colors"
-                  >
-                    Get started
-                    <i className="fa-solid fa-paper-plane" aria-hidden="true" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-lg space-y-6">
-              <div>
-                <p className="text-sm uppercase tracking-[0.2em] text-gray-500">Meet</p>
-                <h4 className="text-3xl font-bold text-maroon">
-                  <CountUp value={750} suffix="+" />
-                </h4>
-                <p className="text-gray-600">Institutions around the world</p>
-              </div>
-              <div className="border-t border-gray-100 pt-6">
-                <p className="text-sm uppercase tracking-[0.2em] text-gray-500">Courses</p>
-                <h4 className="text-3xl font-bold text-maroon">
-                  <CountUp value={42245} />
-                </h4>
-                <p className="text-gray-600">Programs to match your goals</p>
-              </div>
-              <div className="border-t border-gray-100 pt-6">
-                <p className="text-sm uppercase tracking-[0.2em] text-gray-500">Universities</p>
-                <h4 className="text-3xl font-bold text-maroon">
-                  <CountUp value={365} />
-                </h4>
-                <p className="text-gray-600">Top destinations we place students into</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* User Types Section */}
-      <section className="py-20 px-8 bg-gradient-to-br from-cream to-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-maroon mb-4">Built For Everyone</h2>
-            <p className="text-xl text-gray-600">Tailored experiences for each user type</p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <UserTypeCard
-              icon={<i className="fa-solid fa-user-graduate" aria-hidden="true" />}
-              title="For Students"
-              benefits={[
-                'Access to expert tutors',
-                'Interactive live classes',
-                'Track your progress',
-                'Submit assignments online',
-                'Get instant feedback'
-              ]}
-              cta="Start Learning"
-              link="/register"
-            />
-            <UserTypeCard
-              icon={<i className="fa-solid fa-people-roof" aria-hidden="true" />}
-              title="For Parents"
-              benefits={[
-                'Monitor child progress',
-                'Communicate with tutors',
-                'Secure payment system',
-                'View detailed reports',
-                'Manage multiple children'
-              ]}
-              cta="Join as Parent"
-              link="/register"
-            />
-            <UserTypeCard
-              icon={<i className="fa-solid fa-chalkboard-user" aria-hidden="true" />}
-              title="For Tutors"
-              benefits={[
-                'Reach more students',
-                'Manage classes easily',
-                'Auto-grade assignments',
-                'Flexible scheduling',
-                'Secure earnings'
-              ]}
-              cta="Become a Tutor"
-              link="/register"
-            />
-          </div>
-        </div>
-      </section>
-
       {/* How It Works */}
       <section className="bg-maroon text-white py-20 px-8">
         <div className="max-w-5xl mx-auto text-center space-y-6">
           <p className="uppercase tracking-[0.2em] text-gold text-sm font-semibold">How it works</p>
-          <h2 className="text-4xl md:text-5xl font-bold">
-            Speak to our representative, start learning, make progress
-          </h2>
+          <h2 className="text-4xl md:text-5xl font-bold">How to get started</h2>
           <p className="text-lg text-gray-200">
             We listen to your goals, match you with properly vetted tutors, and guide you from the first demo to steady results.
           </p>
@@ -472,31 +534,6 @@ export default function HomePage() {
             </p>
           </div>
         </div>
-        <div className="max-w-4xl mx-auto mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-          <Link
-            href={whatsappLink}
-            target="_blank"
-            rel="noopener"
-            className="inline-flex items-center justify-center gap-2 bg-gold text-maroon px-6 py-3 rounded-lg font-semibold hover:bg-yellow-400 transition-colors"
-          >
-            <i className="fa-brands fa-whatsapp" aria-hidden="true" />
-            WhatsApp a representative
-          </Link>
-          <a
-            href={`tel:${callNumber}`}
-            className="inline-flex items-center justify-center gap-2 bg-white text-maroon px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors border border-white/30"
-          >
-            <i className="fa-solid fa-phone" aria-hidden="true" />
-            Call us
-          </a>
-          <a
-            href={`mailto:${emailAddress}`}
-            className="inline-flex items-center justify-center gap-2 bg-white text-maroon px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors border border-white/30"
-          >
-            <i className="fa-solid fa-envelope" aria-hidden="true" />
-            Email us
-          </a>
-        </div>
       </section>
 
       {/* Footer */}
@@ -515,6 +552,7 @@ export default function HomePage() {
                 <li><Link href="#features" className="hover:text-maroon">Features</Link></li>
                 <li><Link href="/featured-courses" className="hover:text-maroon">Featured Courses</Link></li>
                 <li><Link href="/blog" className="hover:text-maroon">Blog</Link></li>
+                <li><Link href="/audiences" className="hover:text-maroon">Built For Everyone</Link></li>
                 <li><Link href="/register" className="hover:text-maroon">Get Started</Link></li>
               </ul>
             </div>
