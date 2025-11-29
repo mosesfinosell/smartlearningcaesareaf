@@ -6,6 +6,7 @@ import FilterPanel, { FilterGroup, FilterSelection } from './FilterPanel';
 type TutorCard = {
   name: string;
   title?: string;
+  photo?: string;
   tags: string[];
   description: string;
   ctaLabel?: string;
@@ -13,12 +14,13 @@ type TutorCard = {
 };
 
 type ApiTutor = {
-  userId?: { firstName?: string; lastName?: string; email?: string };
+  userId?: { firstName?: string; lastName?: string; email?: string; profile?: { firstName?: string; lastName?: string; profilePicture?: string } };
   subjects?: Array<{ name?: string; level?: string }>;
   expertise?: string[];
   qualifications?: string[];
   languages?: string[];
   bio?: string;
+  photoUrl?: string;
 };
 
 function buildTags(t: ApiTutor): string[] {
@@ -59,12 +61,18 @@ export default function FilterableTutors({
       .then((payload) => {
         const list = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
         const mapped: TutorCard[] = list.map((t: ApiTutor) => {
-          const name = [t.userId?.firstName, t.userId?.lastName].filter(Boolean).join(' ').trim() || 'Tutor';
+          const name =
+            [t.userId?.profile?.firstName || t.userId?.firstName, t.userId?.profile?.lastName || t.userId?.lastName]
+              .filter(Boolean)
+              .join(' ')
+              .trim() || 'Tutor';
           const desc = t.bio || 'Expert tutor available for personalized sessions.';
+          const photo = t.photoUrl || t.userId?.profile?.profilePicture;
           return {
             name,
             title: t.userId?.email,
             description: desc,
+            photo,
             tags: buildTags(t),
           };
         });
@@ -98,9 +106,24 @@ export default function FilterableTutors({
           <p className="text-gray-600 col-span-full">No tutors or courses match this selection yet.</p>
         ) : (
           filteredTutors.map((tutor) => (
-            <div key={tutor.name + tutor.title} className="bg-white rounded-xl shadow-md border border-gray-100 p-6 space-y-3">
-              <h3 className="text-xl font-semibold text-maroon">{tutor.name}</h3>
-              {tutor.title && <p className="text-sm text-gray-600">{tutor.title}</p>}
+            <div key={tutor.name + tutor.title} className="bg-white rounded-xl shadow-md border border-gray-100 p-5 space-y-3">
+              <div className="flex items-center gap-4">
+                {tutor.photo ? (
+                  <img
+                    src={tutor.photo}
+                    alt={`${tutor.name} profile`}
+                    className="w-20 h-16 rounded-lg object-cover border border-gray-200"
+                  />
+                ) : (
+                  <div className="w-20 h-16 rounded-lg bg-cream border border-gray-200 flex items-center justify-center text-maroon font-bold">
+                    {tutor.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <h3 className="text-xl font-semibold text-maroon">{tutor.name}</h3>
+                  {tutor.title && <p className="text-sm text-gray-600">{tutor.title}</p>}
+                </div>
+              </div>
               <p className="text-gray-700 text-sm">{tutor.description}</p>
               <div className="flex flex-wrap gap-2">
                 {tutor.tags.map((tag) => (

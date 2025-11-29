@@ -41,9 +41,6 @@ export default function GlobalVoyagePage() {
         <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-start gap-2">
             <div className="text-3xl font-bold leading-none">SmartLearning</div>
-            <div className="text-[10px] leading-3 text-black translate-y-[-6px]">
-              <div>CC</div>
-            </div>
           </Link>
           <div className="hidden md:flex items-center gap-4 text-black">
             <Link href="/featured-courses" className="hover:text-maroon transition-colors">

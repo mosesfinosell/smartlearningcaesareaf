@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { FocusEvent, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -86,19 +87,10 @@ export default function HomePage() {
           <div className="flex justify-between items-center">
             <div className="flex items-start gap-2">
               <div className="text-3xl font-bold text-maroon leading-none">SmartLearning</div>
-              <div className="text-[10px] leading-3 text-black translate-y-[-6px]">
-                <div>CC</div>
-              </div>
             </div>
 
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center gap-4 text-black">
-              <Link
-                href="/about#board"
-                className="relative inline-flex items-center hover:text-maroon transition-colors pr-4 after:content-[''] after:absolute after:right-0 after:top-1/4 after:bottom-1/4 after:w-px after:bg-red-600"
-              >
-                Board of Governance
-              </Link>
               <div
                 className="relative group"
                 onMouseEnter={() => setFeaturedOpen(true)}
@@ -164,7 +156,7 @@ export default function HomePage() {
                 href="/about"
                 className="relative inline-flex items-center hover:text-maroon transition-colors pr-4 after:content-[''] after:absolute after:right-0 after:top-1/4 after:bottom-1/4 after:w-px after:bg-red-600"
               >
-                About
+                About SmartLearning
               </Link>
               <a
                 href={calendarLink}
@@ -191,12 +183,6 @@ export default function HomePage() {
             {mobileMenuOpen && (
             <div className="md:hidden mt-4 pb-4 space-y-3">
               <Link
-                href="/about#board"
-                className="relative inline-flex items-center hover:text-maroon transition-colors text-black pr-4 after:content-[''] after:absolute after:right-0 after:top-1/4 after:bottom-1/4 after:w-px after:bg-red-600"
-              >
-                Board of Governance
-              </Link>
-              <Link
                 href="/featured-courses"
                 className="relative inline-flex items-center hover:text-maroon transition-colors text-black pr-4 after:content-[''] after:absolute after:right-0 after:top-1/4 after:bottom-1/4 after:w-px after:bg-red-600"
               >
@@ -206,7 +192,7 @@ export default function HomePage() {
                 href="/about"
                 className="relative inline-flex items-center hover:text-maroon transition-colors text-black pr-4 after:content-[''] after:absolute after:right-0 after:top-1/4 after:bottom-1/4 after:w-px after:bg-red-600"
               >
-                About
+                About SmartLearning
               </Link>
               <a
                 href={calendarLink}
@@ -221,50 +207,19 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* Floating Contact Sidebar */}
-      <div className="fixed right-3 bottom-3 md:bottom-8 z-40 space-y-2">
-        <Link
-          href={whatsappLink}
-          target="_blank"
-          rel="noopener"
-          className="group flex items-center gap-2 bg-green-600 text-white px-2.5 py-2.5 rounded-full shadow-lg hover:bg-green-700 transition-all duration-200"
-        >
-          <i className="fa-brands fa-whatsapp" aria-hidden="true" />
-          <span className="text-sm font-semibold max-w-0 overflow-hidden group-hover:max-w-xs group-hover:pl-1 transition-all duration-200 whitespace-nowrap">
-            WhatsApp a representative
-          </span>
-        </Link>
-        <a
-          href={`tel:${callNumber}`}
-          className="group flex items-center gap-2 bg-white text-maroon px-2.5 py-2.5 rounded-full shadow-lg border border-maroon hover:bg-cream transition-all duration-200"
-        >
-          <i className="fa-solid fa-phone" aria-hidden="true" />
-          <span className="text-sm font-semibold max-w-0 overflow-hidden group-hover:max-w-xs group-hover:pl-1 transition-all duration-200 whitespace-nowrap">
-            Call us
-          </span>
-        </a>
-        <a
-          href={`mailto:${emailAddress}`}
-          className="group flex items-center gap-2 bg-white text-maroon px-2.5 py-2.5 rounded-full shadow-lg border border-maroon hover:bg-cream transition-all duration-200"
-        >
-          <i className="fa-solid fa-envelope" aria-hidden="true" />
-          <span className="text-sm font-semibold max-w-0 overflow-hidden group-hover:max-w-xs group-hover:pl-1 transition-all duration-200 whitespace-nowrap">
-            Email us
-          </span>
-        </a>
-      </div>
-
       {/* Hero Section */}
       <section className="bg-white text-maroon py-20 px-8">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight text-gray-900">
-                Transform Education with{' '}
-                <span className="text-maroon-dark">SmartLearning</span> by Caesarea College
+                Top Premium Option
               </h1>
+              <p className="text-base md:text-lg mb-4 text-gray-700">
+                Learn from Anywhere. Speak like Them, Succeed Everywhere.
+              </p>
               <p className="text-base md:text-lg mb-8 text-gray-700">
-                Making quality education accessible through a structured model, blending hands-on school expertise with global diversity in mind.
+                Your pathway to world-class online learning, expert tutors, and structured lessons designed to help you excel academically and professionally.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link href="/register">
@@ -280,13 +235,24 @@ export default function HomePage() {
               </div>
             </div>
             <div className="hidden md:block">
-              <div className="bg-cream border border-maroon-light/20 rounded-2xl p-8 shadow-lg">
-                <div className="grid grid-cols-2 gap-6">
-                  <StatBox number="500+" label="Active Students" icon={<i className="fa-solid fa-user-graduate" aria-hidden="true" />} />
-                  <StatBox number="100+" label="Expert Tutors" icon={<i className="fa-solid fa-chalkboard-user" aria-hidden="true" />} />
-                  <StatBox number="50+" label="Subjects" icon={<i className="fa-solid fa-book-open" aria-hidden="true" />} />
-                  <StatBox number="98%" label="Success Rate" icon={<i className="fa-solid fa-star" aria-hidden="true" />} />
-                </div>
+              <div className="relative w-full h-[420px] rounded-2xl overflow-hidden shadow-xl border border-maroon-light/20">
+                <Image
+                  src="/images/brooke-cagle-LCcFI_26diA-unsplash.jpg"
+                  alt="Students learning online with SmartLearning by Caesarea College"
+                  fill
+                  className="object-cover"
+                  priority
+                  sizes="(min-width: 1024px) 50vw, 100vw"
+                />
+                <div
+                  className="pointer-events-none absolute inset-0"
+                  style={{
+                    backgroundImage: `
+                      linear-gradient(to right, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0) 18%, rgba(255,255,255,0) 82%, rgba(255,255,255,0.85) 100%),
+                      linear-gradient(to bottom, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 22%, rgba(255,255,255,0) 78%, rgba(255,255,255,0.5) 100%)
+                    `,
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -361,7 +327,7 @@ export default function HomePage() {
           <div className="flex flex-col gap-4 max-w-4xl">
             <p className="text-sm font-semibold text-gold uppercase tracking-[0.18em]">Admissions & Travels</p>
             <h2 className="text-4xl md:text-5xl font-bold text-maroon leading-tight">
-              Study abroad. Simplified.
+              Study Global. Simplified.
             </h2>
             <p className="text-xl text-gray-700">
               From courses to countries, find what you need in a moment.
@@ -457,17 +423,6 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-8">
             <FeatureCard
-              icon={<i className="fa-solid fa-shield-check" aria-hidden="true" />}
-              title="Regulated & Certified Tutors"
-              description="Every tutor is vetted, certified, and aligned to standards set by seasoned school administrators."
-            />
-            <FeatureCard
-              icon={<i className="fa-solid fa-wallet" aria-hidden="true" />}
-              title="Operational Clarity"
-              description="Governance and policies set by seasoned school administrators, keeping processes as clear as an on-campus experience."
-            />
-            <FeatureCard
-              icon={<i className="fa-solid fa-chart-line" aria-hidden="true" />}
               title="Structured Management"
               description="Structured systems led by an experienced educational management board with hands-on physical school expertise."
               extra={
@@ -478,19 +433,13 @@ export default function HomePage() {
               }
             />
             <FeatureCard
-              icon={<i className="fa-solid fa-video" aria-hidden="true" />}
-              title="Properly Vetted Tutors"
-              description="Every tutor is rigorously screened, interviewed, and monitored to deliver reliable, high-quality learning experiences."
-            />
-            <FeatureCard
-              icon={<i className="fa-solid fa-pen-to-square" aria-hidden="true" />}
               title="Global Diversity in Education"
               description="Structured learning experiences designed for diverse cultures, time zones, and learning needs—while keeping rigorous standards."
             />
             <FeatureCard
-              icon={<i className="fa-solid fa-comments" aria-hidden="true" />}
-              title="Direct Communication"
-              description="Built-in communication that keeps parents, students, tutors, and administrators aligned, with direct channels to share feedback and decisions with the management team."
+              icon={<i className="fa-solid fa-shield-check" aria-hidden="true" />}
+              title="Regulated & Certified Tutors"
+              description="Every tutor is vetted, certified, and aligned to standards set by seasoned school administrators."
             />
           </div>
         </div>
@@ -507,7 +456,7 @@ export default function HomePage() {
         </div>
         <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-6 mt-10">
           <div className="bg-white text-gray-900 rounded-xl p-8 shadow-lg space-y-3">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-maroon text-white text-xl font-bold">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-maroon text-white text-2xl font-bold">
               1
             </div>
             <h3 className="text-2xl font-semibold text-black">Speak to our representative</h3>
@@ -516,7 +465,7 @@ export default function HomePage() {
             </p>
           </div>
           <div className="bg-white text-gray-900 rounded-xl p-8 shadow-lg space-y-3">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-maroon text-white text-xl font-bold">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-maroon text-white text-2xl font-bold">
               2
             </div>
             <h3 className="text-2xl font-semibold text-black">Start learning</h3>
@@ -525,7 +474,7 @@ export default function HomePage() {
             </p>
           </div>
           <div className="bg-white text-gray-900 rounded-xl p-8 shadow-lg space-y-3">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-maroon text-white text-xl font-bold">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-maroon text-white text-2xl font-bold">
               3
             </div>
             <h3 className="text-2xl font-semibold text-black">Make progress</h3>
@@ -533,6 +482,31 @@ export default function HomePage() {
               Track improvements, review recorded sessions, and adjust plans with your representative to keep momentum high.
             </p>
           </div>
+        </div>
+        <div className="max-w-6xl mx-auto mt-10 flex flex-wrap justify-end gap-3">
+          <Link
+            href={whatsappLink}
+            target="_blank"
+            rel="noopener"
+            className="flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-full shadow-lg hover:bg-green-700 transition-colors"
+          >
+            <i className="fa-brands fa-whatsapp" aria-hidden="true" />
+            <span className="text-sm font-semibold">WhatsApp a representative</span>
+          </Link>
+          <a
+            href={`tel:${callNumber}`}
+            className="flex items-center gap-2 bg-white text-maroon px-4 py-3 rounded-full shadow-lg border border-maroon hover:bg-cream transition-colors"
+          >
+            <i className="fa-solid fa-phone" aria-hidden="true" />
+            <span className="text-sm font-semibold">Call us</span>
+          </a>
+          <a
+            href={`mailto:${emailAddress}`}
+            className="flex items-center gap-2 bg-white text-maroon px-4 py-3 rounded-full shadow-lg border border-maroon hover:bg-cream transition-colors"
+          >
+            <i className="fa-solid fa-envelope" aria-hidden="true" />
+            <span className="text-sm font-semibold">Email us</span>
+          </a>
         </div>
       </section>
 
@@ -693,13 +667,13 @@ function StatBox({ number, label, icon }: { number: string; label: string; icon:
   );
 }
 
-function FeatureCard({ icon, title, description, extra }: { icon: ReactNode; title: string; description: string; extra?: ReactNode }) {
+function FeatureCard({ icon, title, description, extra }: { icon?: ReactNode; title: string; description: string; extra?: ReactNode }) {
   return (
-    <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow border border-gray-100">
-      <div className="text-5xl mb-4 text-black [&>*]:align-middle">{icon}</div>
-      <h3 className="text-xl font-bold text-maroon mb-3">{title}</h3>
+    <div className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow border border-gray-100">
+      {icon ? <div className="text-5xl mb-3 text-black [&>*]:align-middle">{icon}</div> : null}
+      <h3 className="text-xl font-bold text-maroon mb-2">{title}</h3>
       <p className="text-gray-600">{description}</p>
-      {extra && <div className="mt-4">{extra}</div>}
+      {extra && <div className="mt-3">{extra}</div>}
     </div>
   );
 }

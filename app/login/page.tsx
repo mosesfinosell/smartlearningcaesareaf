@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { OAuthButtons } from '../components/OAuthButtons';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,8 +12,51 @@ export default function LoginPage() {
     email: '',
     password: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const handleAuthSuccess = (payload: any) => {
+    const normalized = payload.data || payload;
+    const user = normalized.user || normalized.userInfo || normalized || {};
+    const accessToken = normalized.accessToken || normalized.token || normalized.access_token;
+    const refreshToken = normalized.refreshToken;
+    const role = user.role || normalized.role;
+    const userId = user._id || user.id || user.userId || normalized.userId || normalized.id;
+
+    if (!accessToken || !role || !userId) {
+      throw new Error('OAuth response missing required fields');
+    }
+
+    localStorage.setItem('token', accessToken);
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken);
+    }
+    localStorage.setItem('userRole', role);
+    localStorage.setItem('userId', userId);
+
+    if (normalized.profileComplete === false || user.profileComplete === false) {
+      router.push('/complete-profile');
+      return;
+    }
+
+    switch (role) {
+      case 'admin':
+        router.push('/admin/dashboard');
+        break;
+      case 'tutor':
+        router.push('/tutor/dashboard');
+        break;
+      case 'student':
+        router.push('/student/dashboard');
+        break;
+      case 'parent':
+        router.push('/parent/dashboard');
+        break;
+      default:
+        router.push('/');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,42 +78,7 @@ export default function LoginPage() {
         throw new Error(data.message || 'Login failed');
       }
 
-      // Normalize API response in case user details are nested differently
-      const normalized = data.data || data;
-      const user = normalized.user || normalized.userInfo || normalized || {};
-      const token = data.token || data.accessToken || data.access_token || normalized.token || normalized.accessToken || normalized.access_token;
-      const role = user.role || normalized.role;
-      const userId = user._id || user.id || user.userId || normalized.userId || normalized.id;
-
-      if (!token) {
-        throw new Error('Login response missing token');
-      }
-      if (!role || !userId) {
-        throw new Error('Login response missing user details');
-      }
-
-      // Store token and user data
-      localStorage.setItem('token', token);
-      localStorage.setItem('userRole', role);
-      localStorage.setItem('userId', userId);
-
-      // Redirect based on role
-      switch (role) {
-        case 'admin':
-          router.push('/admin/dashboard');
-          break;
-        case 'tutor':
-          router.push('/tutor/dashboard');
-          break;
-        case 'student':
-          router.push('/student/dashboard');
-          break;
-        case 'parent':
-          router.push('/parent/dashboard');
-          break;
-        default:
-          router.push('/');
-      }
+      handleAuthSuccess(data);
     } catch (err: any) {
       setError(err.message || 'Login failed. Please try again.');
       setLoading(false);
@@ -112,14 +121,23 @@ export default function LoginPage() {
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Password
               </label>
-              <input
-                type="password"
-                required
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon"
-                placeholder="Enter your password"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={formData.password}
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  className="w-full px-4 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon"
+                  placeholder="Enter your password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-3 text-sm text-gray-600 hover:text-maroon font-semibold"
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center justify-between">
@@ -140,6 +158,18 @@ export default function LoginPage() {
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
+
+          <div className="my-6">
+            <div className="relative text-center">
+              <span className="px-2 bg-white text-gray-500 text-sm">or continue with</span>
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200" />
+              </div>
+            </div>
+            <div className="mt-4">
+              <OAuthButtons apiBase={apiBase} role={null} onSuccess={handleAuthSuccess} />
+            </div>
+          </div>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">

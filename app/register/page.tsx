@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { OAuthButtons } from '../components/OAuthButtons';
 
 type UserRole = 'tutor' | 'student' | 'parent';
 
@@ -27,8 +28,49 @@ export default function RegisterPage() {
     // Parent specific
     occupation: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const handleAuthSuccess = (payload: any) => {
+    const normalized = payload.data || payload;
+    const user = normalized.user || normalized.userInfo || normalized || {};
+    const accessToken = normalized.accessToken || normalized.token || normalized.access_token;
+    const refreshToken = normalized.refreshToken;
+    const resolvedRole = user.role || normalized.role || role;
+    const userId = user._id || user.id || user.userId || normalized.userId || normalized.id;
+
+    if (!accessToken || !resolvedRole || !userId) {
+      throw new Error('OAuth response missing required fields');
+    }
+
+    localStorage.setItem('token', accessToken);
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken);
+    }
+    localStorage.setItem('userRole', resolvedRole);
+    localStorage.setItem('userId', userId);
+
+    if (normalized.profileComplete === false || user.profileComplete === false) {
+      router.push('/complete-profile');
+      return;
+    }
+
+    switch (resolvedRole) {
+      case 'tutor':
+        router.push('/tutor/dashboard');
+        break;
+      case 'student':
+        router.push('/student/dashboard');
+        break;
+      case 'parent':
+        router.push('/parent/dashboard');
+        break;
+      default:
+        router.push('/');
+    }
+  };
 
   const handleRoleSelect = (selectedRole: UserRole) => {
     setRole(selectedRole);
@@ -75,31 +117,7 @@ export default function RegisterPage() {
         throw new Error(payload.message || raw.message || 'Registration failed');
       }
 
-      const token = payload.accessToken || payload.token;
-      const userId = payload.user?.id || payload.user?._id || payload.userId;
-      if (!token || !userId) {
-        throw new Error('Invalid registration response');
-      }
-
-      // Store token and redirect
-      localStorage.setItem('token', token);
-      localStorage.setItem('userRole', role || '');
-      localStorage.setItem('userId', userId);
-
-      alert('Registration successful!');
-      
-      // Redirect based on role
-      switch (role) {
-        case 'tutor':
-          router.push('/tutor/dashboard');
-          break;
-        case 'student':
-          router.push('/student/dashboard');
-          break;
-        case 'parent':
-          router.push('/parent/dashboard');
-          break;
-      }
+      handleAuthSuccess(raw);
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
       setLoading(false);
@@ -204,6 +222,11 @@ export default function RegisterPage() {
                 >
                   ← Change Role
                 </button>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600">Or continue quickly with:</p>
+                <OAuthButtons apiBase={apiBase} role={role} onSuccess={handleAuthSuccess} />
               </div>
 
               {/* Basic Information */}
@@ -372,25 +395,43 @@ export default function RegisterPage() {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Password *
                   </label>
-                  <input
-                    type="password"
-                    required
-                    value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={formData.password}
+                      onChange={(e) => setFormData({...formData, password: e.target.value})}
+                      className="w-full px-4 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="absolute inset-y-0 right-3 text-sm text-gray-600 hover:text-maroon font-semibold"
+                    >
+                      {showPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Confirm Password *
                   </label>
-                  <input
-                    type="password"
-                    required
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      required
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                      className="w-full px-4 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-maroon"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword((prev) => !prev)}
+                      className="absolute inset-y-0 right-3 text-sm text-gray-600 hover:text-maroon font-semibold"
+                    >
+                      {showConfirmPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
                 </div>
               </div>
 
