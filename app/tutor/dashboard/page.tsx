@@ -41,6 +41,7 @@ type TutorProfile = {
     level?: string;
   }>;
   verificationStatus?: string;
+  overallVerificationStatus?: string;
   rating?: number;
   totalReviews?: number;
   wallet?: {
@@ -197,6 +198,12 @@ export default function TutorDashboard() {
                 {verificationIcon}
                 <span>{verificationLabel}</span>
               </p>
+              <Link
+                href="/tutor/verification"
+                className="inline-block mt-2 text-xs font-semibold text-white underline hover:text-gold"
+              >
+                Go to verification
+              </Link>
             </div>
             <button
               onClick={handleLogout}

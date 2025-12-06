@@ -213,7 +213,7 @@ export default function HomePage() {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight text-gray-900">
-                Top Premium Option
+                Top Premium Learning
               </h1>
               <p className="text-base md:text-lg mb-4 text-gray-700">
                 Learn from Anywhere. Speak like Them, Succeed Everywhere.
@@ -488,21 +488,21 @@ export default function HomePage() {
             href={whatsappLink}
             target="_blank"
             rel="noopener"
-            className="flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-full shadow-lg hover:bg-green-700 transition-colors"
+            className="flex items-center gap-2 bg-white text-maroon border border-maroon px-6 py-3 rounded-lg font-semibold shadow-lg hover:bg-maroon hover:text-white transition-colors"
           >
             <i className="fa-brands fa-whatsapp" aria-hidden="true" />
             <span className="text-sm font-semibold">WhatsApp a representative</span>
           </Link>
           <a
             href={`tel:${callNumber}`}
-            className="flex items-center gap-2 bg-white text-maroon px-4 py-3 rounded-full shadow-lg border border-maroon hover:bg-cream transition-colors"
+            className="flex items-center gap-2 bg-white text-maroon border border-maroon px-6 py-3 rounded-lg font-semibold shadow-lg hover:bg-maroon hover:text-white transition-colors"
           >
             <i className="fa-solid fa-phone" aria-hidden="true" />
             <span className="text-sm font-semibold">Call us</span>
           </a>
           <a
             href={`mailto:${emailAddress}`}
-            className="flex items-center gap-2 bg-white text-maroon px-4 py-3 rounded-full shadow-lg border border-maroon hover:bg-cream transition-colors"
+            className="flex items-center gap-2 bg-white text-maroon border border-maroon px-6 py-3 rounded-lg font-semibold shadow-lg hover:bg-maroon hover:text-white transition-colors"
           >
             <i className="fa-solid fa-envelope" aria-hidden="true" />
             <span className="text-sm font-semibold">Email us</span>
